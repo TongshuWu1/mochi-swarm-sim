@@ -4,7 +4,7 @@ import mujoco as mj
 from src.simulation import Simulation
 from src.controller import Controller
 
-MODEL_XML_PATH = "models/mochi.xml"
+MODEL_XML_PATH = "models/mochi_BlimpRace.xml"
 
 
 def main():
