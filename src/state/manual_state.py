@@ -14,7 +14,11 @@ class ManualState(RobotState):
         self._prev_leftright = False  #  overriding feedback during manual input
 
     def update(
-        self, sensors: np.ndarray, action_states: dict
+        self,
+        sensors: np.ndarray,
+        action_states: dict,
+        tracking_result=None,
+        sim_time: float = 0.0,
     ) -> Tuple[np.ndarray, RobotState]:
 
         # equivalent to 'behave.params' in DiffController.ino

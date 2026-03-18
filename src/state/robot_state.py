@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum, auto
-from typing import Tuple
+from typing import Tuple, Optional
 import numpy as np
 
 
@@ -20,10 +20,17 @@ class RobotState(ABC):
         self.target_height: float = 0.0
         self.target_yaw: float = 0.0
         self.target_thrust: float = 0.0
+        self.expected_color: Optional[str] = None
+        self.expected_shape: Optional[str] = None
+        self.expected_label: Optional[str] = None
 
     @abstractmethod
     def update(
-        self, sensors: np.ndarray, action_states: dict
+        self,
+        sensors: np.ndarray,
+        action_states: dict,
+        tracking_result=None,
+        sim_time: float = 0.0,
     ) -> Tuple[np.ndarray, "RobotState"]:
         """
         Updates the state logic.

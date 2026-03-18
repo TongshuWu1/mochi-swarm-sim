@@ -1,8 +1,8 @@
 Z_EN = True
 YAW_EN = True
 
-KPZ = 0.9
-KDZ = 1.2
+KPZ = 1.0
+KDZ = 0.8
 KIZ = 0.0
 Z_INT_LOW = 0
 Z_INT_HIGH = 0.15

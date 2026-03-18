@@ -3,3 +3,4 @@ mujoco
 glfw
 scipy
 matplotlib
+opencv-python

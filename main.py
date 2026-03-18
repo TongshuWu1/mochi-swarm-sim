@@ -1,24 +1,22 @@
+
 # type: ignore[reportAttributeAccessIssue]
 
+import sys
 import mujoco as mj
 from src.simulation import Simulation
 from src.controller import Controller
 
-MODEL_XML_PATH = "models/mochi_BlimpRace.xml"
+MODEL_XML_PATH = "models/mochi_BlimpRace_course_colorshape.xml"
 
 
 def main():
-    # 1. Load model and data
-    model = mj.MjModel.from_xml_path(MODEL_XML_PATH)
+    model_xml_path = sys.argv[1] if len(sys.argv) > 1 else MODEL_XML_PATH
+
+    model = mj.MjModel.from_xml_path(model_xml_path)
     data = mj.MjData(model)
 
-    # 2. Create the controller
     controller = Controller(model, data)
-
-    # 3. Create the simulation "engine" and pass it the controller
     sim = Simulation(model, data, controller)
-
-    # 4. Run the simulation
     sim.run()
 
 

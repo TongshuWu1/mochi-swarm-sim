@@ -75,7 +75,11 @@ class ExplorationState(RobotState):
         self._transit_steps_remaining = steps
 
     def update(
-        self, sensors: np.ndarray, action_states: dict
+        self,
+        sensors: np.ndarray,
+        action_states: dict,
+        tracking_result=None,
+        sim_time: float = 0.0,
     ) -> Tuple[np.ndarray, RobotState]:
 
         behavior_targets = np.zeros(Behavior.NUM_PARAMS)

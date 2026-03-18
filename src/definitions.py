@@ -19,6 +19,7 @@ class Action(IntEnum):
     RIGHT = auto()
     UP = auto()
     DOWN = auto()
+    AUTO_MODE = auto()
 
 
 class State(IntEnum):
