@@ -5,7 +5,7 @@
     viscosity="0.0000181" /> <!-- density and viscosity of air -->
 
   <asset>
-    <texture type="skybox" builtin="gradient" rgb1=".4 .6 .8" rgb2="0 0 0" width="800" height="800" />
+    <texture type="skybox" builtin="gradient" rgb1="0.22 0.22 0.24" rgb2="0.03 0.03 0.04" width="800" height="800" />
     <material name="balloon_mat" specular="2" shininess=".2" reflectance="0.8" rgba="0.1 0.5 0.9 1" />
     <material name="frame_mat" rgba="0.2 0.2 0.2 1" />
     <material name="motors_mat" rgba="0.8 0.2 0.2 1" />
