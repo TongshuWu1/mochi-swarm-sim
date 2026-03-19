@@ -4,21 +4,22 @@ import numpy as np
 from mujoco.glfw import glfw
 
 from .definitions import AXLE, THRUST_LEFT, THRUST_RIGHT, Action, State
+from .preferences import CAMERA as CAMERA_PREFS
 from .vision.camera_config import CameraConfig
 from .vision.image_processor import ImageProcessor
 from .vision.target_tracker import TargetTracker
 
 
 CAMERA_CONFIG = CameraConfig(
-    resolution_name="HQVGA",
-    fps=10.0,
-    processing_mode="RGB",
-    show_processed_window=True,
-    window_scale=2,
+    resolution_name=CAMERA_PREFS.RESOLUTION_NAME,
+    fps=CAMERA_PREFS.FPS,
+    processing_mode=CAMERA_PREFS.PROCESSING_MODE,
+    show_processed_window=CAMERA_PREFS.SHOW_PROCESSED_WINDOW,
+    window_scale=CAMERA_PREFS.WINDOW_SCALE,
 )
 
-CAMERA = "nicla_vision"
-ASSEMBLY = "assembly"
+CAMERA = CAMERA_PREFS.FIXED_CAMERA_NAME
+ASSEMBLY = CAMERA_PREFS.FOLLOW_BODY_NAME
 
 
 class Simulation:
@@ -33,7 +34,7 @@ class Simulation:
 
         # Camera pipeline components
         self.camera_config = CAMERA_CONFIG
-        self.image_processor = ImageProcessor(self.camera_config.processing_mode)
+        self.image_processor = ImageProcessor(self.camera_config.normalized_processing_mode)
         self.target_tracker = TargetTracker()
 
         # Make sure the offscreen render target is large enough for selected camera size.
@@ -207,7 +208,7 @@ class Simulation:
         current_state = self.controller.state_machine.current_state
         tracking = self.controller.get_latest_tracking_result()
         sequence_index = getattr(current_state, "sequence_index", None)
-        sequence = getattr(current_state, "GATE_SEQUENCE", None)
+        sequence = getattr(current_state, "gate_sequence", None)
         gate_total = len(sequence) if sequence is not None else None
         gate_number = None
         if gate_total is not None and sequence_index is not None:
@@ -297,7 +298,7 @@ class Simulation:
         processed_frame = self.image_processor.process(raw_rgb)
         tracking_expectation = self.controller.get_tracking_expectation()
         tracking_result = self.target_tracker.update(
-            processed_frame.processed,
+            raw_rgb,
             self.data.time,
             expected_color=tracking_expectation.get("expected_color"),
             expected_shape=tracking_expectation.get("expected_shape"),
@@ -318,7 +319,7 @@ class Simulation:
             display_bgr=display_bgr,
             sim_time=self.data.time,
             resolution_name=self.camera_config.resolution_name,
-            processing_mode=self.camera_config.processing_mode,
+            processing_mode=self.camera_config.normalized_processing_mode,
             tracking_result=tracking_result,
         )
 

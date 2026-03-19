@@ -1,4 +1,3 @@
-
 # type: ignore[reportAttributeAccessIssue]
 
 import sys
@@ -6,7 +5,7 @@ import mujoco as mj
 from src.simulation import Simulation
 from src.controller import Controller
 
-MODEL_XML_PATH = "models/mochi_BlimpRace_course_colorshape.xml"
+MODEL_XML_PATH = "models/mochi_BlimpRace_balloon_course.xml"
 
 
 def main():

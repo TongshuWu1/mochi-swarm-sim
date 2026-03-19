@@ -2,22 +2,21 @@ import numpy as np
 from mujoco.glfw import glfw
 from scipy.spatial.transform import Rotation as R
 
-from .state.robot_state_machine import RobotStateMachine
-from .state.manual_state import ManualState
-from .state.exploration_state import ExplorationState
-from .state.auto_gate_sequence_state import AutoGateSequenceState
-from .robot.differential import Differential
 from .definitions import (
     Action,
-    State,
-    SERVO,
-    THRUST_RIGHT,
-    THRUST_LEFT,
-    IMU_POS,
-    IMU_LIN_VEL,
     IMU_ANG_VEL,
+    IMU_LIN_VEL,
+    IMU_POS,
     IMU_QUAT,
+    SERVO,
+    State,
+    THRUST_LEFT,
+    THRUST_RIGHT,
 )
+from .robot.differential import Differential
+from .state.auto_gate_sequence_state import AutoGateSequenceState
+from .state.manual_state import ManualState
+from .state.robot_state_machine import RobotStateMachine
 from .vision.target_tracker import TrackingResult
 
 
@@ -28,8 +27,8 @@ KEY_BINDINGS = {
     glfw.KEY_D: Action.RIGHT,
     glfw.KEY_SPACE: Action.UP,
     glfw.KEY_LEFT_SHIFT: Action.DOWN,
+    glfw.KEY_RIGHT_SHIFT: Action.DOWN,
     glfw.KEY_ENTER: Action.ARMED,
-    glfw.KEY_3: Action.AUTO_MODE,
 }
 
 
@@ -39,13 +38,11 @@ class Controller:
     def __init__(self, model, data):
         self.model = model
         self.data = data
-
         self.action_states = {action: False for action in Action}
         self.state_machine = RobotStateMachine(ManualState())
         self.robot = Differential()
         self.senses = np.zeros(State.NUM_STATES)
 
-        # Camera frames from Simulation
         self.latest_camera_raw_rgb = None
         self.latest_camera_processed = None
         self.latest_camera_display_bgr = None
@@ -54,8 +51,6 @@ class Controller:
         self._last_consumed_camera_seq = -1
         self.latest_camera_resolution_name = None
         self.latest_camera_processing_mode = None
-
-        # Tracking output from the visual pipeline
         self.latest_tracking_result = TrackingResult()
 
     def update_key_state(self, key, action):
@@ -67,12 +62,8 @@ class Controller:
                 print("[STATE SELECT] ManualState (1)")
                 return
             if key == glfw.KEY_2:
-                self.state_machine.current_state = ExplorationState()
-                print("[STATE SELECT] ExplorationState (2)")
-                return
-            if key == glfw.KEY_3:
                 self.state_machine.current_state = AutoGateSequenceState()
-                print("[STATE SELECT] AutoGateSequenceState (3)")
+                print("[STATE SELECT] AutoGateSequenceState (2)")
                 return
 
         if key in KEY_BINDINGS:
@@ -159,20 +150,13 @@ class Controller:
 
     def control_step(self, model, data):
         self._sense()
-
-        # Future hook: if you want to drive from vision, use:
-        # if self.has_new_camera_frame():
-        #     frame = self.consume_latest_camera_processed(copy=False)
-        #     tracking = self.get_latest_tracking_result()
-
         behavior_commands = self.state_machine.update(
             self.senses,
             self.action_states,
             tracking_result=self.latest_tracking_result,
             sim_time=float(data.time),
         )
-        actuator_commands = self.robot.control(self.senses, behavior_commands)
-
+        actuator_commands = self.robot.control(self.senses, behavior_commands, sim_time=float(data.time))
         data.actuator(THRUST_LEFT).ctrl = actuator_commands[0]
         data.actuator(THRUST_RIGHT).ctrl = actuator_commands[1]
         data.actuator(SERVO).ctrl = actuator_commands[2]
@@ -187,12 +171,11 @@ class Controller:
         quat = self.data.sensor(IMU_QUAT).data.copy()
         rot = R.from_quat([quat[1], quat[2], quat[3], quat[0]])
         roll, pitch, yaw = rot.as_euler("xyz", degrees=False)
-
         self.senses[State.X_ROLL] = roll
         self.senses[State.Y_PITCH] = pitch
         self.senses[State.Z_YAW] = yaw
 
-        ang_vel = self.data.sensor(IMU_ANG_VEL).data.copy()
-        self.senses[State.X_ROLL_RATE] = ang_vel[0]
-        self.senses[State.Y_PITCH_RATE] = ang_vel[1]
-        self.senses[State.Z_YAW_RATE] = ang_vel[2]
+        imu_ang_vel = self.data.sensor(IMU_ANG_VEL).data.copy()
+        self.senses[State.X_ROLL_RATE] = imu_ang_vel[0]
+        self.senses[State.Y_PITCH_RATE] = imu_ang_vel[1]
+        self.senses[State.Z_YAW_RATE] = imu_ang_vel[2]
