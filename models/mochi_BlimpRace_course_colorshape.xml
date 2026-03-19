@@ -1,0 +1,171 @@
+<mujoco model="mochi_blimp_race_course_colorshape">
+  <compiler angle="degree" meshdir="./meshes/" />
+
+  <option gravity="0 0 -9.81" integrator="implicit" timestep="0.01" density="1.225"
+    viscosity="0.0000181" />
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.22 0.22 0.24" rgb2="0.03 0.03 0.04" width="800" height="800" />
+    <material name="balloon_mat" specular="2" shininess=".2" reflectance="0.8" rgba="0.1 0.5 0.9 1" />
+    <material name="frame_mat" rgba="0.2 0.2 0.2 1" />
+    <material name="motors_mat" rgba="0.8 0.2 0.2 1" />
+    <material name="floor_mat" rgba="0.18 0.18 0.20 1" />
+    <material name="lane_mat" rgba="0.88 0.88 0.92 1" />
+    <mesh name="frame_mesh" file="frame.stl" />
+    <mesh name="motors_mesh" file="motors.stl" />
+  </asset>
+
+  <worldbody>
+    <light directional="true" pos="0 0 22" dir="0 0 -1" diffuse="0.95 0.95 0.95" specular="0.2 0.2 0.2" />
+    <light pos="-12 -10 14" dir="1 0 0" directional="false" diffuse="0.35 0.35 0.35" />
+
+    <body name="environment">
+      <geom name="floor" type="plane" size="96 32 0.1" material="floor_mat" />
+
+      <!-- sparse lane hints only; this is an open 3D course -->
+      <geom name="lane_01" type="box" pos="-37.5 0.0 0.002" size="4.0 0.12 0.002" euler="0 0 0" material="lane_mat" />
+      <geom name="lane_02" type="box" pos="-26.0 -2.0 0.002" size="5.0 0.12 0.002" euler="0 0 -18" material="lane_mat" />
+      <geom name="lane_03" type="box" pos="-13.5 0.8 0.002" size="5.6 0.12 0.002" euler="0 0 24" material="lane_mat" />
+      <geom name="lane_04" type="box" pos="-1.0 4.8 0.002" size="5.2 0.12 0.002" euler="0 0 10" material="lane_mat" />
+      <geom name="lane_05" type="box" pos="13.0 3.8 0.002" size="6.4 0.12 0.002" euler="0 0 -12" material="lane_mat" />
+      <geom name="lane_06" type="box" pos="27.0 0.0 0.002" size="6.6 0.12 0.002" euler="0 0 -22" material="lane_mat" />
+      <geom name="lane_07" type="box" pos="41.0 -5.6 0.002" size="6.6 0.12 0.002" euler="0 0 -8" material="lane_mat" />
+      <geom name="lane_08" type="box" pos="55.0 -4.8 0.002" size="6.0 0.12 0.002" euler="0 0 17" material="lane_mat" />
+      <geom name="lane_09" type="box" pos="69.5 -0.6 0.002" size="5.4 0.12 0.002" euler="0 0 10" material="lane_mat" />
+
+      <geom name="start_pad" type="cylinder" pos="-42 0 0.02" size="2.2 0.02" rgba="0.2 0.9 0.2 1" />
+      <geom name="finish_pad" type="cylinder" pos="82 3.0 0.02" size="2.2 0.02" rgba="0.95 0.2 0.2 1" />
+
+      <!-- Bigger, more spread-out 9-gate course. The next gate stays generally ahead, with enough distance
+           for the blimp to read full color/shape and correct yaw/height before committing. -->
+
+      <body name="gate_01_green_circle" pos="-34.0 0.0 3.0" euler="0 0 0">
+        <geom type="box" fromto="0 1.300 0.000 0 1.126 0.650" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 1.126 0.650 0 0.650 1.126" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 0.650 1.126 0 0.000 1.300" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 0.000 1.300 0 -0.650 1.126" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 -0.650 1.126 0 -1.126 0.650" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 -1.126 0.650 0 -1.300 0.000" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 -1.300 0.000 0 -1.126 -0.650" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 -1.126 -0.650 0 -0.650 -1.126" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 -0.650 -1.126 0 -0.000 -1.300" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 -0.000 -1.300 0 0.650 -1.126" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 0.650 -1.126 0 1.126 -0.650" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 1.126 -0.650 0 1.300 -0.000" size="0.065" rgba="0.10 0.95 0.20 1" />
+      </body>
+
+      <body name="gate_02_yellow_rectangle" pos="-22.0 -4.0 3.8" euler="0 0 10">
+        <geom type="box" fromto="0 -1.28 0.92 0 1.28 0.92" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 1.28 0.92 0 1.28 -0.92" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 1.28 -0.92 0 -1.28 -0.92" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 -1.28 -0.92 0 -1.28 0.92" size="0.065" rgba="1.00 0.90 0.10 1" />
+      </body>
+
+      <body name="gate_03_red_triangle" pos="-8.0 1.8 4.7" euler="0 0 -8">
+        <geom type="box" fromto="0 0.000 1.450 0 -1.255 -0.725" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 -1.255 -0.725 0 1.255 -0.725" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 1.255 -0.725 0 0.000 1.450" size="0.065" rgba="1.00 0.20 0.15 1" />
+      </body>
+
+      <body name="gate_04_green_rectangle" pos="6.0 5.2 5.6" euler="0 0 -16">
+        <geom type="box" fromto="0 -1.24 0.86 0 1.24 0.86" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 1.24 0.86 0 1.24 -0.86" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 1.24 -0.86 0 -1.24 -0.86" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 -1.24 -0.86 0 -1.24 0.86" size="0.065" rgba="0.10 0.95 0.20 1" />
+      </body>
+
+      <body name="gate_05_yellow_circle" pos="20.0 2.4 6.2" euler="0 0 -5">
+        <geom type="box" fromto="0 1.220 0.000 0 1.056 0.610" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 1.056 0.610 0 0.610 1.056" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 0.610 1.056 0 0.000 1.220" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 0.000 1.220 0 -0.610 1.056" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 -0.610 1.056 0 -1.056 0.610" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 -1.056 0.610 0 -1.220 0.000" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 -1.220 0.000 0 -1.056 -0.610" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 -1.056 -0.610 0 -0.610 -1.056" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 -0.610 -1.056 0 -0.000 -1.220" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 -0.000 -1.220 0 0.610 -1.056" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 0.610 -1.056 0 1.056 -0.610" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 1.056 -0.610 0 1.220 -0.000" size="0.065" rgba="1.00 0.90 0.10 1" />
+      </body>
+
+      <body name="gate_06_red_rectangle" pos="34.0 -2.4 5.4" euler="0 0 10">
+        <geom type="box" fromto="0 -1.22 0.84 0 1.22 0.84" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 1.22 0.84 0 1.22 -0.84" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 1.22 -0.84 0 -1.22 -0.84" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 -1.22 -0.84 0 -1.22 0.84" size="0.065" rgba="1.00 0.20 0.15 1" />
+      </body>
+
+      <body name="gate_07_green_triangle" pos="48.0 -7.0 4.8" euler="0 0 16">
+        <geom type="box" fromto="0 0.000 1.300 0 -1.126 -0.650" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 -1.126 -0.650 0 1.126 -0.650" size="0.065" rgba="0.10 0.95 0.20 1" />
+        <geom type="box" fromto="0 1.126 -0.650 0 0.000 1.300" size="0.065" rgba="0.10 0.95 0.20 1" />
+      </body>
+
+      <body name="gate_08_yellow_triangle" pos="62.0 -2.2 4.2" euler="0 0 12">
+        <geom type="box" fromto="0 0.000 1.320 0 -1.143 -0.660" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 -1.143 -0.660 0 1.143 -0.660" size="0.065" rgba="1.00 0.90 0.10 1" />
+        <geom type="box" fromto="0 1.143 -0.660 0 0.000 1.320" size="0.065" rgba="1.00 0.90 0.10 1" />
+      </body>
+
+      <body name="gate_09_red_circle" pos="76.0 3.0 3.6" euler="0 0 0">
+        <geom type="box" fromto="0 1.250 0.000 0 1.082 0.625" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 1.082 0.625 0 0.625 1.082" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 0.625 1.082 0 0.000 1.250" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 0.000 1.250 0 -0.625 1.082" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 -0.625 1.082 0 -1.082 0.625" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 -1.082 0.625 0 -1.250 0.000" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 -1.250 0.000 0 -1.082 -0.625" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 -1.082 -0.625 0 -0.625 -1.082" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 -0.625 -1.082 0 -0.000 -1.250" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 -0.000 -1.250 0 0.625 -1.082" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 0.625 -1.082 0 1.082 -0.625" size="0.065" rgba="1.00 0.20 0.15 1" />
+        <geom type="box" fromto="0 1.082 -0.625 0 1.250 -0.000" size="0.065" rgba="1.00 0.20 0.15 1" />
+      </body>
+    </body>
+
+    <body name="blimp" pos="-42 0 1.8" gravcomp="3.2872">
+      <freejoint />
+      <geom name="balloon" type="sphere" size="0.5" material="balloon_mat" density="0.167"
+        fluidshape="ellipsoid" />
+      <site name="front_marker_site" pos=".5 0 0" size="0.05" rgba="0 1 0 1" />
+      <body name="assembly" pos="0 0 -0.52">
+        <body name="frame">
+          <geom type="mesh" mesh="frame_mesh" material="frame_mat" mass="0.15" euler="0 0 90" />
+        </body>
+
+        <body name="motors">
+          <joint name="motors_axle" type="hinge" axis="0 -1 0" range="-180 180" />
+          <geom type="mesh" mesh="motors_mesh" material="motors_mat" mass="0.05" euler="0 90 90" />
+
+          <site name="motor_left_site" pos="0 0.21 0" size="0.01" />
+          <site name="motor_right_site" pos="0 -0.21 0" size="0.01" />
+        </body>
+
+        <camera name="nicla_vision" pos="0 0 -.07" euler="90 270 0" />
+        <site name="camera_site" size="0.01" rgba="1 0 1 1" pos="0 0 -.07" />
+
+        <site name="imu_site" />
+        <site name="ultrasonic_site" size="0.01" pos=".1 0 -.07" euler="90 90 0" />
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <position name="motors_servo" joint="motors_axle" kp="0.05" dampratio="1"
+      ctrlrange="-3.14159 3.14159" />
+
+    <general name="motor_left_thrust" site="motor_left_site" gear="1 0 0 0 0 0"
+      forcerange="0 0.3924" ctrlrange="0 1" />
+    <general name="motor_right_thrust" site="motor_right_site" gear="1 0 0 0 0 0"
+      forcerange="0 0.3924" ctrlrange="0 1" />
+  </actuator>
+
+  <sensor>
+    <rangefinder name="ultrasonic" site="ultrasonic_site" />
+    <framepos name="imu_pos" objtype="site" objname="imu_site" />
+    <framelinvel name="imu_lin_vel" objtype="site" objname="imu_site" />
+    <frameangvel name="imu_ang_vel" objtype="site" objname="imu_site" />
+    <framequat name="imu_quat" objtype="site" objname="imu_site" />
+  </sensor>
+</mujoco>

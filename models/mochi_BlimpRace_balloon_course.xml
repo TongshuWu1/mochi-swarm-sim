@@ -1,0 +1,258 @@
+<mujoco model="mochi_blimp_balloon_course">
+  <compiler angle="degree" meshdir="./meshes/" />
+
+  <option gravity="0 0 -9.81" integrator="implicit" timestep="0.01" density="1.225" viscosity="0.0000181" />
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.22 0.22 0.24" rgb2="0.03 0.03 0.04" width="800" height="800" />
+    <material name="balloon_mat" specular="2" shininess=".2" reflectance="0.8" rgba="0.1 0.5 0.9 1" />
+    <material name="frame_mat" rgba="0.2 0.2 0.2 1" />
+    <material name="motors_mat" rgba="0.8 0.2 0.2 1" />
+    <material name="floor_mat" rgba="0.18 0.18 0.20 1" />
+    <material name="lane_mat" rgba="0.88 0.88 0.92 1" />
+    <mesh name="frame_mesh" file="frame.stl" />
+    <mesh name="motors_mesh" file="motors.stl" />
+  </asset>
+
+  <worldbody>
+    <light directional="true" pos="0 0 22" dir="0 0 -1" diffuse="0.95 0.95 0.95" specular="0.2 0.2 0.2" />
+    <light pos="-12 -10 14" dir="1 0 0" directional="false" diffuse="0.35 0.35 0.35" />
+
+    <body name="environment">
+      <geom name="floor" type="plane" size="96 32 0.1" material="floor_mat" />
+      <geom name="lane_01" type="box" pos="-36.0 0.0 0.002" size="4.5 0.12 0.002" euler="0 0 0" material="lane_mat" />
+      <geom name="lane_02" type="box" pos="-24.0 -1.8 0.002" size="5.0 0.12 0.002" euler="0 0 -18" material="lane_mat" />
+      <geom name="lane_03" type="box" pos="-10.0 1.5 0.002" size="5.2 0.12 0.002" euler="0 0 24" material="lane_mat" />
+      <geom name="lane_04" type="box" pos="4.0 4.4 0.002" size="5.2 0.12 0.002" euler="0 0 12" material="lane_mat" />
+      <geom name="lane_05" type="box" pos="18.0 2.2 0.002" size="6.0 0.12 0.002" euler="0 0 -10" material="lane_mat" />
+      <geom name="lane_06" type="box" pos="32.0 -1.6 0.002" size="6.2 0.12 0.002" euler="0 0 -20" material="lane_mat" />
+      <geom name="lane_07" type="box" pos="46.0 -4.8 0.002" size="6.0 0.12 0.002" euler="0 0 -8" material="lane_mat" />
+      <geom name="lane_08" type="box" pos="60.0 -1.2 0.002" size="6.0 0.12 0.002" euler="0 0 14" material="lane_mat" />
+      <geom name="lane_09" type="box" pos="74.0 2.0 0.002" size="5.0 0.12 0.002" euler="0 0 10" material="lane_mat" />
+
+      <geom name="start_pad" type="cylinder" pos="-42 0 0.02" size="2.2 0.02" rgba="0.2 0.9 0.2 1" />
+      <geom name="finish_pad" type="cylinder" pos="82 3.0 0.02" size="2.2 0.02" rgba="0.95 0.2 0.2 1" />
+
+      <body name="red_anchor" pos="-34.00 0.00 0.03">
+        <geom name="red_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
+        <body name="red_link1" pos="0 0 0.816">
+          <joint name="red_joint1" type="ball" damping="0.20" />
+          <geom name="red_rope1" type="capsule" fromto="0 0 -0.816 0 0 0" size="0.010" rgba="0.80 0.80 0.82 1" mass="0.008" contype="0" conaffinity="0" />
+          <body name="red_link2" pos="0 0 0.792">
+            <joint name="red_joint2" type="ball" damping="0.18" />
+            <geom name="red_rope2" type="capsule" fromto="0 0 -0.792 0 0 0" size="0.009" rgba="0.80 0.80 0.82 1" mass="0.007" contype="0" conaffinity="0" />
+            <body name="red_link3" pos="0 0 0.492">
+              <joint name="red_joint3" type="ball" damping="0.16" />
+              <geom name="red_rope3" type="capsule" fromto="0 0 -0.492 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
+              <body name="balloon_red" pos="0 0 0.30" gravcomp="1.22">
+                <joint name="red_balloon_joint" type="ball" damping="0.32" />
+                <geom name="balloon_red_geom" type="sphere" size="0.24" rgba="0.96 0.20 0.18 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <site name="balloon_red_site" pos="0 0 0" size="0.02" rgba="0.96 0.20 0.18 1" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="orange_anchor" pos="-24.00 -3.60 0.03">
+        <geom name="orange_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
+        <body name="orange_link1" pos="0 0 0.986">
+          <joint name="orange_joint1" type="ball" damping="0.20" />
+          <geom name="orange_rope1" type="capsule" fromto="0 0 -0.986 0 0 0" size="0.010" rgba="0.80 0.80 0.82 1" mass="0.008" contype="0" conaffinity="0" />
+          <body name="orange_link2" pos="0 0 0.957">
+            <joint name="orange_joint2" type="ball" damping="0.18" />
+            <geom name="orange_rope2" type="capsule" fromto="0 0 -0.957 0 0 0" size="0.009" rgba="0.80 0.80 0.82 1" mass="0.007" contype="0" conaffinity="0" />
+            <body name="orange_link3" pos="0 0 0.657">
+              <joint name="orange_joint3" type="ball" damping="0.16" />
+              <geom name="orange_rope3" type="capsule" fromto="0 0 -0.657 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
+              <body name="balloon_orange" pos="0 0 0.30" gravcomp="1.22">
+                <joint name="orange_balloon_joint" type="ball" damping="0.32" />
+                <geom name="balloon_orange_geom" type="sphere" size="0.24" rgba="1.00 0.52 0.12 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <site name="balloon_orange_site" pos="0 0 0" size="0.02" rgba="1.00 0.52 0.12 1" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="yellow_anchor" pos="-12.00 2.00 0.03">
+        <geom name="yellow_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
+        <body name="yellow_link1" pos="0 0 1.156">
+          <joint name="yellow_joint1" type="ball" damping="0.20" />
+          <geom name="yellow_rope1" type="capsule" fromto="0 0 -1.156 0 0 0" size="0.010" rgba="0.80 0.80 0.82 1" mass="0.008" contype="0" conaffinity="0" />
+          <body name="yellow_link2" pos="0 0 1.122">
+            <joint name="yellow_joint2" type="ball" damping="0.18" />
+            <geom name="yellow_rope2" type="capsule" fromto="0 0 -1.122 0 0 0" size="0.009" rgba="0.80 0.80 0.82 1" mass="0.007" contype="0" conaffinity="0" />
+            <body name="yellow_link3" pos="0 0 0.822">
+              <joint name="yellow_joint3" type="ball" damping="0.16" />
+              <geom name="yellow_rope3" type="capsule" fromto="0 0 -0.822 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
+              <body name="balloon_yellow" pos="0 0 0.30" gravcomp="1.22">
+                <joint name="yellow_balloon_joint" type="ball" damping="0.32" />
+                <geom name="balloon_yellow_geom" type="sphere" size="0.24" rgba="1.00 0.88 0.12 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <site name="balloon_yellow_site" pos="0 0 0" size="0.02" rgba="1.00 0.88 0.12 1" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="lime_anchor" pos="0.00 5.20 0.03">
+        <geom name="lime_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
+        <body name="lime_link1" pos="0 0 0.952">
+          <joint name="lime_joint1" type="ball" damping="0.20" />
+          <geom name="lime_rope1" type="capsule" fromto="0 0 -0.952 0 0 0" size="0.010" rgba="0.80 0.80 0.82 1" mass="0.008" contype="0" conaffinity="0" />
+          <body name="lime_link2" pos="0 0 0.924">
+            <joint name="lime_joint2" type="ball" damping="0.18" />
+            <geom name="lime_rope2" type="capsule" fromto="0 0 -0.924 0 0 0" size="0.009" rgba="0.80 0.80 0.82 1" mass="0.007" contype="0" conaffinity="0" />
+            <body name="lime_link3" pos="0 0 0.624">
+              <joint name="lime_joint3" type="ball" damping="0.16" />
+              <geom name="lime_rope3" type="capsule" fromto="0 0 -0.624 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
+              <body name="balloon_lime" pos="0 0 0.30" gravcomp="1.22">
+                <joint name="lime_balloon_joint" type="ball" damping="0.32" />
+                <geom name="balloon_lime_geom" type="sphere" size="0.24" rgba="0.70 0.95 0.16 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <site name="balloon_lime_site" pos="0 0 0" size="0.02" rgba="0.70 0.95 0.16 1" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="green_anchor" pos="14.00 3.60 0.03">
+        <geom name="green_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
+        <body name="green_link1" pos="0 0 1.224">
+          <joint name="green_joint1" type="ball" damping="0.20" />
+          <geom name="green_rope1" type="capsule" fromto="0 0 -1.224 0 0 0" size="0.010" rgba="0.80 0.80 0.82 1" mass="0.008" contype="0" conaffinity="0" />
+          <body name="green_link2" pos="0 0 1.188">
+            <joint name="green_joint2" type="ball" damping="0.18" />
+            <geom name="green_rope2" type="capsule" fromto="0 0 -1.188 0 0 0" size="0.009" rgba="0.80 0.80 0.82 1" mass="0.007" contype="0" conaffinity="0" />
+            <body name="green_link3" pos="0 0 0.888">
+              <joint name="green_joint3" type="ball" damping="0.16" />
+              <geom name="green_rope3" type="capsule" fromto="0 0 -0.888 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
+              <body name="balloon_green" pos="0 0 0.30" gravcomp="1.22">
+                <joint name="green_balloon_joint" type="ball" damping="0.32" />
+                <geom name="balloon_green_geom" type="sphere" size="0.24" rgba="0.10 0.85 0.22 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <site name="balloon_green_site" pos="0 0 0" size="0.02" rgba="0.10 0.85 0.22 1" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="cyan_anchor" pos="28.00 -0.80 0.03">
+        <geom name="cyan_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
+        <body name="cyan_link1" pos="0 0 0.884">
+          <joint name="cyan_joint1" type="ball" damping="0.20" />
+          <geom name="cyan_rope1" type="capsule" fromto="0 0 -0.884 0 0 0" size="0.010" rgba="0.80 0.80 0.82 1" mass="0.008" contype="0" conaffinity="0" />
+          <body name="cyan_link2" pos="0 0 0.858">
+            <joint name="cyan_joint2" type="ball" damping="0.18" />
+            <geom name="cyan_rope2" type="capsule" fromto="0 0 -0.858 0 0 0" size="0.009" rgba="0.80 0.80 0.82 1" mass="0.007" contype="0" conaffinity="0" />
+            <body name="cyan_link3" pos="0 0 0.558">
+              <joint name="cyan_joint3" type="ball" damping="0.16" />
+              <geom name="cyan_rope3" type="capsule" fromto="0 0 -0.558 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
+              <body name="balloon_cyan" pos="0 0 0.30" gravcomp="1.22">
+                <joint name="cyan_balloon_joint" type="ball" damping="0.32" />
+                <geom name="balloon_cyan_geom" type="sphere" size="0.24" rgba="0.10 0.88 0.92 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <site name="balloon_cyan_site" pos="0 0 0" size="0.02" rgba="0.10 0.88 0.92 1" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="blue_anchor" pos="42.00 -5.20 0.03">
+        <geom name="blue_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
+        <body name="blue_link1" pos="0 0 1.088">
+          <joint name="blue_joint1" type="ball" damping="0.20" />
+          <geom name="blue_rope1" type="capsule" fromto="0 0 -1.088 0 0 0" size="0.010" rgba="0.80 0.80 0.82 1" mass="0.008" contype="0" conaffinity="0" />
+          <body name="blue_link2" pos="0 0 1.056">
+            <joint name="blue_joint2" type="ball" damping="0.18" />
+            <geom name="blue_rope2" type="capsule" fromto="0 0 -1.056 0 0 0" size="0.009" rgba="0.80 0.80 0.82 1" mass="0.007" contype="0" conaffinity="0" />
+            <body name="blue_link3" pos="0 0 0.756">
+              <joint name="blue_joint3" type="ball" damping="0.16" />
+              <geom name="blue_rope3" type="capsule" fromto="0 0 -0.756 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
+              <body name="balloon_blue" pos="0 0 0.30" gravcomp="1.22">
+                <joint name="blue_balloon_joint" type="ball" damping="0.32" />
+                <geom name="balloon_blue_geom" type="sphere" size="0.24" rgba="0.16 0.42 0.96 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <site name="balloon_blue_site" pos="0 0 0" size="0.02" rgba="0.16 0.42 0.96 1" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="purple_anchor" pos="56.00 -2.00 0.03">
+        <geom name="purple_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
+        <body name="purple_link1" pos="0 0 0.850">
+          <joint name="purple_joint1" type="ball" damping="0.20" />
+          <geom name="purple_rope1" type="capsule" fromto="0 0 -0.850 0 0 0" size="0.010" rgba="0.80 0.80 0.82 1" mass="0.008" contype="0" conaffinity="0" />
+          <body name="purple_link2" pos="0 0 0.825">
+            <joint name="purple_joint2" type="ball" damping="0.18" />
+            <geom name="purple_rope2" type="capsule" fromto="0 0 -0.825 0 0 0" size="0.009" rgba="0.80 0.80 0.82 1" mass="0.007" contype="0" conaffinity="0" />
+            <body name="purple_link3" pos="0 0 0.525">
+              <joint name="purple_joint3" type="ball" damping="0.16" />
+              <geom name="purple_rope3" type="capsule" fromto="0 0 -0.525 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
+              <body name="balloon_purple" pos="0 0 0.30" gravcomp="1.22">
+                <joint name="purple_balloon_joint" type="ball" damping="0.32" />
+                <geom name="balloon_purple_geom" type="sphere" size="0.24" rgba="0.56 0.24 0.92 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <site name="balloon_purple_site" pos="0 0 0" size="0.02" rgba="0.56 0.24 0.92 1" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="magenta_anchor" pos="70.00 2.60 0.03">
+        <geom name="magenta_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
+        <body name="magenta_link1" pos="0 0 1.020">
+          <joint name="magenta_joint1" type="ball" damping="0.20" />
+          <geom name="magenta_rope1" type="capsule" fromto="0 0 -1.020 0 0 0" size="0.010" rgba="0.80 0.80 0.82 1" mass="0.008" contype="0" conaffinity="0" />
+          <body name="magenta_link2" pos="0 0 0.990">
+            <joint name="magenta_joint2" type="ball" damping="0.18" />
+            <geom name="magenta_rope2" type="capsule" fromto="0 0 -0.990 0 0 0" size="0.009" rgba="0.80 0.80 0.82 1" mass="0.007" contype="0" conaffinity="0" />
+            <body name="magenta_link3" pos="0 0 0.690">
+              <joint name="magenta_joint3" type="ball" damping="0.16" />
+              <geom name="magenta_rope3" type="capsule" fromto="0 0 -0.690 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
+              <body name="balloon_magenta" pos="0 0 0.30" gravcomp="1.22">
+                <joint name="magenta_balloon_joint" type="ball" damping="0.32" />
+                <geom name="balloon_magenta_geom" type="sphere" size="0.24" rgba="0.92 0.20 0.82 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <site name="balloon_magenta_site" pos="0 0 0" size="0.02" rgba="0.92 0.20 0.82 1" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <body name="blimp" pos="-42 0 1.8" gravcomp="3.2872">
+      <freejoint />
+      <geom name="balloon" type="sphere" size="0.5" material="balloon_mat" density="0.167" fluidshape="ellipsoid" />
+      <site name="front_marker_site" pos=".5 0 0" size="0.05" rgba="0 1 0 1" />
+      <body name="assembly" pos="0 0 -0.52">
+        <body name="frame">
+          <geom type="mesh" mesh="frame_mesh" material="frame_mat" mass="0.15" euler="0 0 90" />
+        </body>
+
+        <body name="motors">
+          <joint name="motors_axle" type="hinge" axis="0 -1 0" range="-180 180" />
+          <geom type="mesh" mesh="motors_mesh" material="motors_mat" mass="0.05" euler="0 90 90" />
+
+          <site name="motor_left_site" pos="0 0.21 0" size="0.01" />
+          <site name="motor_right_site" pos="0 -0.21 0" size="0.01" />
+        </body>
+
+        <camera name="nicla_vision" pos="0 0 -.07" euler="90 270 0" />
+        <site name="camera_site" size="0.01" rgba="1 0 1 1" pos="0 0 -.07" />
+
+        <site name="imu_site" />
+        <site name="ultrasonic_site" size="0.01" pos=".1 0 -.07" euler="90 90 0" />
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <position name="motors_servo" joint="motors_axle" kp="0.05" dampratio="1" ctrlrange="-3.14159 3.14159" />
+
+    <general name="motor_left_thrust" site="motor_left_site" gear="1 0 0 0 0 0" forcerange="0 0.3924" ctrlrange="0 1" />
+    <general name="motor_right_thrust" site="motor_right_site" gear="1 0 0 0 0 0" forcerange="0 0.3924" ctrlrange="0 1" />
+  </actuator>
+
+  <sensor>
+    <rangefinder name="ultrasonic" site="ultrasonic_site" />
+    <framepos name="imu_pos" objtype="site" objname="imu_site" />
+    <framelinvel name="imu_lin_vel" objtype="site" objname="imu_site" />
+    <frameangvel name="imu_ang_vel" objtype="site" objname="imu_site" />
+    <framequat name="imu_quat" objtype="site" objname="imu_site" />
+  </sensor>
+</mujoco>
