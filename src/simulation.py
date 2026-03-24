@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import cv2
 import mujoco as mj
 import numpy as np
@@ -20,6 +22,10 @@ CAMERA_CONFIG = CameraConfig(
 
 CAMERA = CAMERA_PREFS.FIXED_CAMERA_NAME
 ASSEMBLY = CAMERA_PREFS.FOLLOW_BODY_NAME
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+TRAJECTORY_PLOT_DIR = PROJECT_ROOT / "outputs" / "trajectory_plots"
+TRAJECTORY_PLOT_3D_PATH = TRAJECTORY_PLOT_DIR / "trajectory_3d.png"
+TRAJECTORY_PLOT_XY_PATH = TRAJECTORY_PLOT_DIR / "trajectory_xy.png"
 
 
 class Simulation:
@@ -126,12 +132,27 @@ class Simulation:
         if self.camera_config.show_processed_window:
             self._init_processed_camera_window()
 
+    def _reset_runtime_state(self):
+        self.camera_follow = True
+        mj.mj_resetData(self.model, self.data)
+        mj.mj_forward(self.model, self.data)
+
+        self.controller.reset(preserve_mode=True)
+        self.target_tracker = TargetTracker()
+
+        self.next_camera_capture_time = float(self.data.time)
+        self.latest_camera_raw_rgb = None
+        self.latest_camera_processed = None
+        self.latest_camera_display_bgr = None
+        self.latest_camera_capture_time = -1.0
+
+        self.traj_x.clear()
+        self.traj_y.clear()
+        self.traj_z.clear()
+
     def _keyboard_callback(self, window, key, scancode, act, mods):
         if act == glfw.PRESS and key == glfw.KEY_BACKSPACE:
-            self.camera_follow = True
-            mj.mj_resetData(self.model, self.data)
-            mj.mj_forward(self.model, self.data)
-            self.next_camera_capture_time = self.data.time
+            self._reset_runtime_state()
             return
 
         self.controller.update_key_state(key, act)
@@ -442,10 +463,10 @@ class Simulation:
 
             glfw.poll_events()
 
-            key = cv2.waitKey(1) & 0xFF
-            if key == 27:
-                break
             if self._camera_window_initialized:
+                key = cv2.waitKey(1) & 0xFF
+                if key == 27:
+                    break
                 visible = cv2.getWindowProperty(
                     self.camera_window_name, cv2.WND_PROP_VISIBLE
                 )
@@ -459,8 +480,9 @@ class Simulation:
 
         try:
             if len(self.traj_x) > 1:
-                self._plot_3d_trajectory()
-                self._plot_xy_trajectory()
+                saved_paths = self._save_trajectory_plots()
+                saved_names = ", ".join(str(path) for path in saved_paths)
+                print(f"Saved trajectory plots: {saved_names}")
         except Exception as e:
             print(f"Trajectory plotting skipped ({e})")
 
@@ -471,47 +493,50 @@ class Simulation:
 
         glfw.terminate()
 
-    def _plot_3d_trajectory(self):
+    def _save_trajectory_plots(self) -> tuple[Path, Path]:
         import matplotlib.pyplot as plt
 
-        fig = plt.figure(figsize=(7, 6))
-        ax = fig.add_subplot(111, projection="3d")
-        ax.plot(self.traj_x, self.traj_y, self.traj_z, "-", linewidth=1.5, label="trajectory")
-        ax.scatter(self.traj_x[0], self.traj_y[0], self.traj_z[0], c="green", s=40, label="start")
-        ax.scatter(self.traj_x[-1], self.traj_y[-1], self.traj_z[-1], c="red", s=40, label="end")
+        TRAJECTORY_PLOT_DIR.mkdir(parents=True, exist_ok=True)
 
-        xs = np.array(self.traj_x)
-        ys = np.array(self.traj_y)
-        zs = np.array(self.traj_z)
+        xs = np.array(self.traj_x, dtype=float)
+        ys = np.array(self.traj_y, dtype=float)
+        zs = np.array(self.traj_z, dtype=float)
 
-        x_range = xs.max() - xs.min()
-        y_range = ys.max() - ys.min()
-        z_range = zs.max() - zs.min()
+        fig3d = plt.figure(figsize=(7, 6))
+        ax3d = fig3d.add_subplot(111, projection="3d")
+        ax3d.plot(xs, ys, zs, "-", linewidth=1.5, label="trajectory")
+        ax3d.scatter(xs[0], ys[0], zs[0], c="green", s=40, label="start")
+        ax3d.scatter(xs[-1], ys[-1], zs[-1], c="red", s=40, label="end")
+
+        x_range = float(xs.max() - xs.min())
+        y_range = float(ys.max() - ys.min())
+        z_range = float(zs.max() - zs.min())
         max_range = max(x_range, y_range, z_range, 1e-9)
 
-        ax.set_box_aspect((x_range / max_range, y_range / max_range, z_range / max_range))
-        ax.set_title("Robot 3D trajectory")
-        ax.set_xlabel("X (m)")
-        ax.set_ylabel("Y (m)")
-        ax.set_zlabel("Z (m)")
-        ax.grid(True, linestyle="--", alpha=0.4)
-        ax.legend(loc="best")
-        plt.tight_layout()
-        plt.show()
+        ax3d.set_box_aspect((x_range / max_range, y_range / max_range, z_range / max_range))
+        ax3d.set_title("Robot 3D trajectory")
+        ax3d.set_xlabel("X (m)")
+        ax3d.set_ylabel("Y (m)")
+        ax3d.set_zlabel("Z (m)")
+        ax3d.grid(True, linestyle="--", alpha=0.4)
+        ax3d.legend(loc="best")
+        fig3d.tight_layout()
+        fig3d.savefig(TRAJECTORY_PLOT_3D_PATH, dpi=180, bbox_inches="tight")
+        plt.close(fig3d)
 
-    def _plot_xy_trajectory(self):
-        import matplotlib.pyplot as plt
+        fig2d = plt.figure(figsize=(6, 6))
+        ax2d = fig2d.add_subplot(111)
+        ax2d.plot(xs, ys, "-", linewidth=1.5, label="trajectory")
+        ax2d.scatter(xs[0], ys[0], c="green", s=40, label="start")
+        ax2d.scatter(xs[-1], ys[-1], c="red", s=40, label="end")
+        ax2d.set_aspect("equal", adjustable="box")
+        ax2d.set_title("Robot XY trajectory")
+        ax2d.set_xlabel("X (m)")
+        ax2d.set_ylabel("Y (m)")
+        ax2d.grid(True, linestyle="--", alpha=0.4)
+        ax2d.legend(loc="best")
+        fig2d.tight_layout()
+        fig2d.savefig(TRAJECTORY_PLOT_XY_PATH, dpi=180, bbox_inches="tight")
+        plt.close(fig2d)
 
-        fig = plt.figure(figsize=(6, 6))
-        ax2 = fig.add_subplot(111)
-        ax2.plot(self.traj_x, self.traj_y, "-", linewidth=1.5, label="trajectory")
-        ax2.scatter(self.traj_x[0], self.traj_y[0], c="green", s=40, label="start")
-        ax2.scatter(self.traj_x[-1], self.traj_y[-1], c="red", s=40, label="end")
-        ax2.set_aspect("equal", adjustable="box")
-        ax2.set_title("Robot XY trajectory")
-        ax2.set_xlabel("X (m)")
-        ax2.set_ylabel("Y (m)")
-        ax2.grid(True, linestyle="--", alpha=0.4)
-        ax2.legend(loc="best")
-        plt.tight_layout()
-        plt.show()
+        return TRAJECTORY_PLOT_3D_PATH, TRAJECTORY_PLOT_XY_PATH
