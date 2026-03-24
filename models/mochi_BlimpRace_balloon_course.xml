@@ -33,7 +33,7 @@
       <geom name="start_pad" type="cylinder" pos="-42 0 0.02" size="2.2 0.02" rgba="0.2 0.9 0.2 1" />
       <geom name="finish_pad" type="cylinder" pos="82 3.0 0.02" size="2.2 0.02" rgba="0.95 0.2 0.2 1" />
 
-      <body name="red_anchor" pos="-34.00 0.00 0.03">
+      <body name="red_anchor" pos="-29.40 0.00 0.03">
         <geom name="red_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
         <body name="red_link1" pos="0 0 0.816">
           <joint name="red_joint1" type="ball" damping="0.20" />
@@ -46,14 +46,15 @@
               <geom name="red_rope3" type="capsule" fromto="0 0 -0.492 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
               <body name="balloon_red" pos="0 0 0.30" gravcomp="1.22">
                 <joint name="red_balloon_joint" type="ball" damping="0.32" />
-                <geom name="balloon_red_geom" type="sphere" size="0.24" rgba="0.96 0.20 0.18 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <geom name="balloon_red_geom" type="sphere" size="0.34" rgba="0.96 0.20 0.18 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
                 <site name="balloon_red_site" pos="0 0 0" size="0.02" rgba="0.96 0.20 0.18 1" />
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="orange_anchor" pos="-24.00 -3.60 0.03">
+
+      <body name="orange_anchor" pos="-20.76 -3.11 0.03">
         <geom name="orange_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
         <body name="orange_link1" pos="0 0 0.986">
           <joint name="orange_joint1" type="ball" damping="0.20" />
@@ -66,14 +67,15 @@
               <geom name="orange_rope3" type="capsule" fromto="0 0 -0.657 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
               <body name="balloon_orange" pos="0 0 0.30" gravcomp="1.22">
                 <joint name="orange_balloon_joint" type="ball" damping="0.32" />
-                <geom name="balloon_orange_geom" type="sphere" size="0.24" rgba="1.00 0.52 0.12 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <geom name="balloon_orange_geom" type="sphere" size="0.34" rgba="1.00 0.52 0.12 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
                 <site name="balloon_orange_site" pos="0 0 0" size="0.02" rgba="1.00 0.52 0.12 1" />
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="yellow_anchor" pos="-12.00 2.00 0.03">
+
+      <body name="yellow_anchor" pos="-10.38 1.73 0.03">
         <geom name="yellow_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
         <body name="yellow_link1" pos="0 0 1.156">
           <joint name="yellow_joint1" type="ball" damping="0.20" />
@@ -86,14 +88,15 @@
               <geom name="yellow_rope3" type="capsule" fromto="0 0 -0.822 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
               <body name="balloon_yellow" pos="0 0 0.30" gravcomp="1.22">
                 <joint name="yellow_balloon_joint" type="ball" damping="0.32" />
-                <geom name="balloon_yellow_geom" type="sphere" size="0.24" rgba="1.00 0.88 0.12 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <geom name="balloon_yellow_geom" type="sphere" size="0.34" rgba="1.00 0.88 0.12 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
                 <site name="balloon_yellow_site" pos="0 0 0" size="0.02" rgba="1.00 0.88 0.12 1" />
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="lime_anchor" pos="0.00 5.20 0.03">
+
+      <body name="lime_anchor" pos="0.00 4.49 0.03">
         <geom name="lime_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
         <body name="lime_link1" pos="0 0 0.952">
           <joint name="lime_joint1" type="ball" damping="0.20" />
@@ -106,14 +109,15 @@
               <geom name="lime_rope3" type="capsule" fromto="0 0 -0.624 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
               <body name="balloon_lime" pos="0 0 0.30" gravcomp="1.22">
                 <joint name="lime_balloon_joint" type="ball" damping="0.32" />
-                <geom name="balloon_lime_geom" type="sphere" size="0.24" rgba="0.70 0.95 0.16 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <geom name="balloon_lime_geom" type="sphere" size="0.34" rgba="0.70 0.95 0.16 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
                 <site name="balloon_lime_site" pos="0 0 0" size="0.02" rgba="0.70 0.95 0.16 1" />
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="green_anchor" pos="14.00 3.60 0.03">
+
+      <body name="green_anchor" pos="12.11 2.94 0.03">
         <geom name="green_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
         <body name="green_link1" pos="0 0 1.224">
           <joint name="green_joint1" type="ball" damping="0.20" />
@@ -126,14 +130,15 @@
               <geom name="green_rope3" type="capsule" fromto="0 0 -0.888 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
               <body name="balloon_green" pos="0 0 0.30" gravcomp="1.22">
                 <joint name="green_balloon_joint" type="ball" damping="0.32" />
-                <geom name="balloon_green_geom" type="sphere" size="0.24" rgba="0.10 0.85 0.22 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <geom name="balloon_green_geom" type="sphere" size="0.34" rgba="0.10 0.85 0.22 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
                 <site name="balloon_green_site" pos="0 0 0" size="0.02" rgba="0.10 0.85 0.22 1" />
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="cyan_anchor" pos="28.00 -0.80 0.03">
+
+      <body name="cyan_anchor" pos="24.21 -0.70 0.03">
         <geom name="cyan_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
         <body name="cyan_link1" pos="0 0 0.884">
           <joint name="cyan_joint1" type="ball" damping="0.20" />
@@ -146,14 +151,15 @@
               <geom name="cyan_rope3" type="capsule" fromto="0 0 -0.558 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
               <body name="balloon_cyan" pos="0 0 0.30" gravcomp="1.22">
                 <joint name="cyan_balloon_joint" type="ball" damping="0.32" />
-                <geom name="balloon_cyan_geom" type="sphere" size="0.24" rgba="0.10 0.88 0.92 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <geom name="balloon_cyan_geom" type="sphere" size="0.34" rgba="0.10 0.88 0.92 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
                 <site name="balloon_cyan_site" pos="0 0 0" size="0.02" rgba="0.10 0.88 0.92 1" />
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="blue_anchor" pos="42.00 -5.20 0.03">
+
+      <body name="blue_anchor" pos="36.32 -4.49 0.03">
         <geom name="blue_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
         <body name="blue_link1" pos="0 0 1.088">
           <joint name="blue_joint1" type="ball" damping="0.20" />
@@ -166,14 +172,15 @@
               <geom name="blue_rope3" type="capsule" fromto="0 0 -0.756 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
               <body name="balloon_blue" pos="0 0 0.30" gravcomp="1.22">
                 <joint name="blue_balloon_joint" type="ball" damping="0.32" />
-                <geom name="balloon_blue_geom" type="sphere" size="0.24" rgba="0.16 0.42 0.96 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <geom name="balloon_blue_geom" type="sphere" size="0.34" rgba="0.16 0.42 0.96 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
                 <site name="balloon_blue_site" pos="0 0 0" size="0.02" rgba="0.16 0.42 0.96 1" />
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="purple_anchor" pos="56.00 -2.00 0.03">
+
+      <body name="purple_anchor" pos="48.43 -1.73 0.03">
         <geom name="purple_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
         <body name="purple_link1" pos="0 0 0.850">
           <joint name="purple_joint1" type="ball" damping="0.20" />
@@ -186,14 +193,15 @@
               <geom name="purple_rope3" type="capsule" fromto="0 0 -0.525 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
               <body name="balloon_purple" pos="0 0 0.30" gravcomp="1.22">
                 <joint name="purple_balloon_joint" type="ball" damping="0.32" />
-                <geom name="balloon_purple_geom" type="sphere" size="0.24" rgba="0.56 0.24 0.92 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <geom name="balloon_purple_geom" type="sphere" size="0.34" rgba="0.56 0.24 0.92 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
                 <site name="balloon_purple_site" pos="0 0 0" size="0.02" rgba="0.56 0.24 0.92 1" />
               </body>
             </body>
           </body>
         </body>
       </body>
-      <body name="magenta_anchor" pos="70.00 2.60 0.03">
+
+      <body name="magenta_anchor" pos="60.54 2.25 0.03">
         <geom name="magenta_anchor_geom" type="sphere" size="0.035" rgba="0.25 0.25 0.25 1" mass="0.01" contype="0" conaffinity="0" />
         <body name="magenta_link1" pos="0 0 1.020">
           <joint name="magenta_joint1" type="ball" damping="0.20" />
@@ -206,7 +214,7 @@
               <geom name="magenta_rope3" type="capsule" fromto="0 0 -0.690 0 0 0" size="0.008" rgba="0.80 0.80 0.82 1" mass="0.006" contype="0" conaffinity="0" />
               <body name="balloon_magenta" pos="0 0 0.30" gravcomp="1.22">
                 <joint name="magenta_balloon_joint" type="ball" damping="0.32" />
-                <geom name="balloon_magenta_geom" type="sphere" size="0.24" rgba="0.92 0.20 0.82 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
+                <geom name="balloon_magenta_geom" type="sphere" size="0.34" rgba="0.92 0.20 0.82 1" mass="0.030" solref="0.010 1" solimp="0.95 0.995 0.001" fluidshape="ellipsoid" />
                 <site name="balloon_magenta_site" pos="0 0 0" size="0.02" rgba="0.92 0.20 0.82 1" />
               </body>
             </body>
@@ -215,7 +223,7 @@
       </body>
     </body>
 
-    <body name="blimp" pos="-42 0 1.8" gravcomp="3.2872">
+    <body name="blimp" pos="-36.32 0.00 1.8" gravcomp="3.2872">
       <freejoint />
       <geom name="balloon" type="sphere" size="0.5" material="balloon_mat" density="0.167" fluidshape="ellipsoid" />
       <site name="front_marker_site" pos=".5 0 0" size="0.05" rgba="0 1 0 1" />

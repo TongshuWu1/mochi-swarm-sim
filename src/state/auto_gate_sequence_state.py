@@ -151,14 +151,6 @@ class AutoGateSequenceState(RobotState):
         )
 
     @staticmethod
-    def _target_soft_close(area: float, width_frac: float, height_frac: float) -> bool:
-        return (
-            area >= AUTO_CHARGE.SOFT_AREA_THRESHOLD
-            or width_frac >= AUTO_CHARGE.SOFT_WIDTH_FRAC_THRESHOLD
-            or height_frac >= AUTO_CHARGE.SOFT_HEIGHT_FRAC_THRESHOLD
-        )
-
-    @staticmethod
     def _target_well_centered(center_error: float) -> bool:
         return center_error <= AUTO_CHARGE.ALIGNMENT_RADIUS
 
@@ -207,11 +199,9 @@ class AutoGateSequenceState(RobotState):
             self.target_thrust = AUTO_TRACK.FORWARD_THRUST_FAR
 
         close_enough = self._target_close_enough(area, width_frac, height_frac)
-        soft_close = self._target_soft_close(area, width_frac, height_frac)
         well_centered = self._target_well_centered(center_error)
-        nearly_centered = center_error <= (AUTO_CHARGE.ALIGNMENT_RADIUS * 1.45)
 
-        charge_candidate = (well_centered and soft_close) or (nearly_centered and close_enough)
+        charge_candidate = well_centered and close_enough
         if charge_candidate:
             if self.charge_candidate_started_time < -1e8:
                 self.charge_candidate_started_time = sim_time
