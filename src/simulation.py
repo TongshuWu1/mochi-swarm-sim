@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import cv2
 import mujoco as mj
 import numpy as np
@@ -7,9 +5,11 @@ from mujoco.glfw import glfw
 
 from .definitions import AXLE, THRUST_LEFT, THRUST_RIGHT, Action, State
 from .preferences import CAMERA as CAMERA_PREFS
+from .preferences import TURBULENCE as TURB_PREFS
 from .vision.camera_config import CameraConfig
 from .vision.image_processor import ImageProcessor
 from .vision.target_tracker import TargetTracker
+from .disturbance import StaticFieldTurbulence
 
 
 CAMERA_CONFIG = CameraConfig(
@@ -22,10 +22,7 @@ CAMERA_CONFIG = CameraConfig(
 
 CAMERA = CAMERA_PREFS.FIXED_CAMERA_NAME
 ASSEMBLY = CAMERA_PREFS.FOLLOW_BODY_NAME
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-TRAJECTORY_PLOT_DIR = PROJECT_ROOT / "outputs" / "trajectory_plots"
-TRAJECTORY_PLOT_3D_PATH = TRAJECTORY_PLOT_DIR / "trajectory_3d.png"
-TRAJECTORY_PLOT_XY_PATH = TRAJECTORY_PLOT_DIR / "trajectory_xy.png"
+BLIMP_BODY = "blimp"
 
 
 class Simulation:
@@ -53,6 +50,7 @@ class Simulation:
 
         # Trajectory recording
         self._assembly_id = self.model.body(ASSEMBLY).id
+        self._blimp_body_id = self.model.body(BLIMP_BODY).id
         self.traj_x: list[float] = []
         self.traj_y: list[float] = []
         self.traj_z: list[float] = []
@@ -73,6 +71,14 @@ class Simulation:
         # OpenCV processed-view window state
         self.camera_window_name = self.camera_config.window_title
         self._camera_window_initialized = False
+
+        # Turbulence field / visualization
+        self.turbulence = StaticFieldTurbulence(TURB_PREFS)
+        self.turbulence.reset(self.data.time)
+        self.latest_wind_sample = self.turbulence.sample(self.data.xpos[self._blimp_body_id])
+        self.turbulence_window_name = TURB_PREFS.WINDOW_NAME
+        self._turbulence_window_initialized = False
+        self._balloon_points_xy = self._collect_balloon_anchor_points()
 
         if not glfw.init():
             raise RuntimeError("Failed to initialize GLFW")
@@ -131,28 +137,30 @@ class Simulation:
 
         if self.camera_config.show_processed_window:
             self._init_processed_camera_window()
-
-    def _reset_runtime_state(self):
-        self.camera_follow = True
-        mj.mj_resetData(self.model, self.data)
-        mj.mj_forward(self.model, self.data)
-
-        self.controller.reset(preserve_mode=True)
-        self.target_tracker = TargetTracker()
-
-        self.next_camera_capture_time = float(self.data.time)
-        self.latest_camera_raw_rgb = None
-        self.latest_camera_processed = None
-        self.latest_camera_display_bgr = None
-        self.latest_camera_capture_time = -1.0
-
-        self.traj_x.clear()
-        self.traj_y.clear()
-        self.traj_z.clear()
+        if self.turbulence.graph_visible:
+            self._init_turbulence_window()
 
     def _keyboard_callback(self, window, key, scancode, act, mods):
         if act == glfw.PRESS and key == glfw.KEY_BACKSPACE:
-            self._reset_runtime_state()
+            self.camera_follow = True
+            mj.mj_resetData(self.model, self.data)
+            mj.mj_forward(self.model, self.data)
+            self.next_camera_capture_time = self.data.time
+            self.turbulence.reset(self.data.time)
+            self.latest_wind_sample = self.turbulence.sample(self.data.xpos[self._blimp_body_id])
+            return
+
+        if act == glfw.PRESS and key == glfw.KEY_T:
+            self.turbulence.toggle_enabled()
+            return
+        if act == glfw.PRESS and key == glfw.KEY_V:
+            self.turbulence.toggle_hud()
+            return
+        if act == glfw.PRESS and key == glfw.KEY_G:
+            self.turbulence.toggle_graph()
+            if not self.turbulence.graph_visible and self._turbulence_window_initialized:
+                cv2.destroyWindow(self.turbulence_window_name)
+                self._turbulence_window_initialized = False
             return
 
         self.controller.update_key_state(key, act)
@@ -224,6 +232,46 @@ class Simulation:
             self.camera_config.height * self.camera_config.window_scale,
         )
         self._camera_window_initialized = True
+
+    def _init_turbulence_window(self):
+        cv2.namedWindow(self.turbulence_window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(
+            self.turbulence_window_name,
+            TURB_PREFS.WINDOW_WIDTH,
+            TURB_PREFS.WINDOW_HEIGHT,
+        )
+        self._turbulence_window_initialized = True
+
+    def _collect_balloon_anchor_points(self):
+        points = []
+        for body_id in range(self.model.nbody):
+            name = mj.mj_id2name(self.model, mj.mjtObj.mjOBJ_BODY, body_id)
+            if name and name.endswith('_anchor'):
+                pos = np.array(self.model.body_pos[body_id], dtype=float)
+                points.append((float(pos[0]), float(pos[1])))
+        return points
+
+    def _apply_turbulence(self):
+        self.data.xfrc_applied[self._blimp_body_id, :] = 0.0
+        self.turbulence.update(self.data.time)
+        self.latest_wind_sample = self.turbulence.sample(self.data.xpos[self._blimp_body_id])
+        if not self.turbulence.enabled:
+            return
+        self.data.xfrc_applied[self._blimp_body_id, 0:3] = self.latest_wind_sample.force_world
+        self.data.xfrc_applied[self._blimp_body_id, 5] = self.latest_wind_sample.yaw_torque
+
+    def _show_turbulence_window(self):
+        if not self.turbulence.graph_visible:
+            return
+        if not self._turbulence_window_initialized:
+            self._init_turbulence_window()
+        img = self.turbulence.build_field_image(
+            TURB_PREFS.WINDOW_WIDTH,
+            TURB_PREFS.WINDOW_HEIGHT,
+            blimp_pos=np.array(self.data.xpos[self._blimp_body_id], dtype=float),
+            balloon_points_xy=self._balloon_points_xy,
+        )
+        cv2.imshow(self.turbulence_window_name, img)
 
     def _get_hud_status(self):
         current_state = self.controller.state_machine.current_state
@@ -436,12 +484,56 @@ class Simulation:
             self.context,
         )
 
+        if self.turbulence.hud_visible:
+            wind = self.latest_wind_sample
+            turb_values = (
+                f"{'ON' if self.turbulence.enabled else 'OFF'}\n"
+                f"{wind.force_world[0]:8.3f}\n"
+                f"{wind.force_world[1]:8.3f}\n"
+                f"{wind.force_world[2]:8.3f}\n"
+                f"{wind.yaw_torque:8.4f}\n"
+                f"{wind.actual_magnitude:8.3f}\n"
+                f"{wind.actual_heading_deg:8.1f}\n"
+                f"{wind.base_magnitude:8.3f}\n"
+                f"{wind.base_heading_deg:8.1f}\n"
+                f"{wind.scale:8.3f}\n"
+                f"{wind.angle_offset_deg:8.1f}\n"
+                f"T toggle\n"
+                f"V hud\n"
+                f"G graph"
+            )
+            turb_labels = (
+                "Turbulence\n"
+                "Fx\n"
+                "Fy\n"
+                "Fz\n"
+                "Tz\n"
+                "|Fxy|\n"
+                "Dir deg\n"
+                "Base |Fxy|\n"
+                "Base dir\n"
+                "Scale\n"
+                "Angle off\n"
+                "\n"
+                "\n"
+                ""
+            )
+            mj.mjr_overlay(
+                mj.mjtFont.mjFONT_NORMAL,
+                mj.mjtGridPos.mjGRID_TOPRIGHT,
+                main_viewport,
+                turb_values,
+                turb_labels,
+                self.context,
+            )
+
         glfw.swap_buffers(self.window)
 
     def run(self):
         while not glfw.window_should_close(self.window):
             time_prev = self.data.time
             while self.data.time - time_prev < 1.0 / 60.0:
+                self._apply_turbulence()
                 mj.mj_step(self.model, self.data)
 
             self._render_main_window()
@@ -455,6 +547,7 @@ class Simulation:
                     self.next_camera_capture_time += self.camera_period
 
             self._show_processed_camera_window()
+            self._show_turbulence_window()
 
             pos = self.data.xpos[self._assembly_id]
             self.traj_x.append(float(pos[0]))
@@ -463,15 +556,22 @@ class Simulation:
 
             glfw.poll_events()
 
+            key = cv2.waitKey(1) & 0xFF
+            if key == 27:
+                break
             if self._camera_window_initialized:
-                key = cv2.waitKey(1) & 0xFF
-                if key == 27:
-                    break
                 visible = cv2.getWindowProperty(
                     self.camera_window_name, cv2.WND_PROP_VISIBLE
                 )
                 if visible < 1:
                     break
+            if self._turbulence_window_initialized:
+                visible = cv2.getWindowProperty(
+                    self.turbulence_window_name, cv2.WND_PROP_VISIBLE
+                )
+                if visible < 1:
+                    self.turbulence.graph_visible = False
+                    self._turbulence_window_initialized = False
 
         self.stop()
 
@@ -480,9 +580,8 @@ class Simulation:
 
         try:
             if len(self.traj_x) > 1:
-                saved_paths = self._save_trajectory_plots()
-                saved_names = ", ".join(str(path) for path in saved_paths)
-                print(f"Saved trajectory plots: {saved_names}")
+                self._plot_3d_trajectory()
+                self._plot_xy_trajectory()
         except Exception as e:
             print(f"Trajectory plotting skipped ({e})")
 
@@ -493,50 +592,47 @@ class Simulation:
 
         glfw.terminate()
 
-    def _save_trajectory_plots(self) -> tuple[Path, Path]:
+    def _plot_3d_trajectory(self):
         import matplotlib.pyplot as plt
 
-        TRAJECTORY_PLOT_DIR.mkdir(parents=True, exist_ok=True)
+        fig = plt.figure(figsize=(7, 6))
+        ax = fig.add_subplot(111, projection="3d")
+        ax.plot(self.traj_x, self.traj_y, self.traj_z, "-", linewidth=1.5, label="trajectory")
+        ax.scatter(self.traj_x[0], self.traj_y[0], self.traj_z[0], c="green", s=40, label="start")
+        ax.scatter(self.traj_x[-1], self.traj_y[-1], self.traj_z[-1], c="red", s=40, label="end")
 
-        xs = np.array(self.traj_x, dtype=float)
-        ys = np.array(self.traj_y, dtype=float)
-        zs = np.array(self.traj_z, dtype=float)
+        xs = np.array(self.traj_x)
+        ys = np.array(self.traj_y)
+        zs = np.array(self.traj_z)
 
-        fig3d = plt.figure(figsize=(7, 6))
-        ax3d = fig3d.add_subplot(111, projection="3d")
-        ax3d.plot(xs, ys, zs, "-", linewidth=1.5, label="trajectory")
-        ax3d.scatter(xs[0], ys[0], zs[0], c="green", s=40, label="start")
-        ax3d.scatter(xs[-1], ys[-1], zs[-1], c="red", s=40, label="end")
-
-        x_range = float(xs.max() - xs.min())
-        y_range = float(ys.max() - ys.min())
-        z_range = float(zs.max() - zs.min())
+        x_range = xs.max() - xs.min()
+        y_range = ys.max() - ys.min()
+        z_range = zs.max() - zs.min()
         max_range = max(x_range, y_range, z_range, 1e-9)
 
-        ax3d.set_box_aspect((x_range / max_range, y_range / max_range, z_range / max_range))
-        ax3d.set_title("Robot 3D trajectory")
-        ax3d.set_xlabel("X (m)")
-        ax3d.set_ylabel("Y (m)")
-        ax3d.set_zlabel("Z (m)")
-        ax3d.grid(True, linestyle="--", alpha=0.4)
-        ax3d.legend(loc="best")
-        fig3d.tight_layout()
-        fig3d.savefig(TRAJECTORY_PLOT_3D_PATH, dpi=180, bbox_inches="tight")
-        plt.close(fig3d)
+        ax.set_box_aspect((x_range / max_range, y_range / max_range, z_range / max_range))
+        ax.set_title("Robot 3D trajectory")
+        ax.set_xlabel("X (m)")
+        ax.set_ylabel("Y (m)")
+        ax.set_zlabel("Z (m)")
+        ax.grid(True, linestyle="--", alpha=0.4)
+        ax.legend(loc="best")
+        plt.tight_layout()
+        plt.show()
 
-        fig2d = plt.figure(figsize=(6, 6))
-        ax2d = fig2d.add_subplot(111)
-        ax2d.plot(xs, ys, "-", linewidth=1.5, label="trajectory")
-        ax2d.scatter(xs[0], ys[0], c="green", s=40, label="start")
-        ax2d.scatter(xs[-1], ys[-1], c="red", s=40, label="end")
-        ax2d.set_aspect("equal", adjustable="box")
-        ax2d.set_title("Robot XY trajectory")
-        ax2d.set_xlabel("X (m)")
-        ax2d.set_ylabel("Y (m)")
-        ax2d.grid(True, linestyle="--", alpha=0.4)
-        ax2d.legend(loc="best")
-        fig2d.tight_layout()
-        fig2d.savefig(TRAJECTORY_PLOT_XY_PATH, dpi=180, bbox_inches="tight")
-        plt.close(fig2d)
+    def _plot_xy_trajectory(self):
+        import matplotlib.pyplot as plt
 
-        return TRAJECTORY_PLOT_3D_PATH, TRAJECTORY_PLOT_XY_PATH
+        fig = plt.figure(figsize=(6, 6))
+        ax2 = fig.add_subplot(111)
+        ax2.plot(self.traj_x, self.traj_y, "-", linewidth=1.5, label="trajectory")
+        ax2.scatter(self.traj_x[0], self.traj_y[0], c="green", s=40, label="start")
+        ax2.scatter(self.traj_x[-1], self.traj_y[-1], c="red", s=40, label="end")
+        ax2.set_aspect("equal", adjustable="box")
+        ax2.set_title("Robot XY trajectory")
+        ax2.set_xlabel("X (m)")
+        ax2.set_ylabel("Y (m)")
+        ax2.grid(True, linestyle="--", alpha=0.4)
+        ax2.legend(loc="best")
+        plt.tight_layout()
+        plt.show()

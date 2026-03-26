@@ -98,14 +98,13 @@ class AutoGateSequenceState(RobotState):
     def _is_new_vision(self, tracking_result) -> bool:
         return tracking_result is not None and float(tracking_result.timestamp) > self.last_vision_timestamp + 1e-9
 
-    def _tracking_matches_expected(self, tracking_result) -> bool:
-        confidence = float(getattr(tracking_result, "confidence", 0.0) or 0.0)
+    def _tracking_matches_expected(self, tracking_result, within_blind_window: bool) -> bool:
         return bool(
             tracking_result
             and tracking_result.found
             and tracking_result.color_name
             and tracking_result.color_name == self.expected_color
-            and confidence >= AUTO.MIN_TRACK_CONFIDENCE
+            and bool(getattr(tracking_result, "confidence", 0.0)) >= AUTO.MIN_TRACK_CONFIDENCE
         )
 
     def _enter_search_mode(self, current_yaw: float, current_yaw_unwrapped: float, sim_time: float, current_height: float):
@@ -271,7 +270,8 @@ class AutoGateSequenceState(RobotState):
             self.target_yaw = current_yaw
             self.target_thrust = 0.0
         else:
-            expected_seen = self._tracking_matches_expected(tracking_result)
+            within_blind_window = (sim_time - self.last_pass_time) < AUTO.POST_ADVANCE_BLIND_TIME
+            expected_seen = self._tracking_matches_expected(tracking_result, within_blind_window)
             new_vision = self._is_new_vision(tracking_result)
 
             if new_vision:
