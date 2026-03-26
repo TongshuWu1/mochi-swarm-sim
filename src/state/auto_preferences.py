@@ -21,7 +21,6 @@ class AUTO:
     MAX_HEIGHT = 4.8
     DEFAULT_HEIGHT = 1.8
 
-    POST_ADVANCE_BLIND_TIME = 1.20
     LOST_TIMEOUT = 0.15
     MIN_TRACK_CONFIDENCE = 0.20
 
@@ -61,17 +60,17 @@ class AUTO_CHARGE:
 
 
 class AUTO_SEARCH:
-    # Spiral starts almost in place, then expands outward with a smooth time-based yaw command.
-    SPIRAL_START_THRUST = 0.004
-    SPIRAL_END_THRUST = 0.032
-    SPIRAL_EXPAND_TURNS = 1.75
+    # Search now uses nearly constant forward speed and a large initial turn rate
+    # that decays over time. With approximately constant forward motion, that gives
+    # an outward spiral in practice instead of the earlier tight curving search.
+    SPIRAL_THRUST = 0.024
 
-    # Time-scaled turning avoids setpoint jitter from per-tick angle jumps.
-    SPIRAL_YAW_RATE = np.deg2rad(96.0)
-    SPIRAL_START_YAW_MULT = 1.15
-    SPIRAL_END_YAW_MULT = 0.78
-    MAX_YAW_LEAD_START = np.deg2rad(14.0)
-    MAX_YAW_LEAD_END = np.deg2rad(24.0)
+    SPIRAL_INITIAL_YAW_RATE = np.deg2rad(140.0)
+    SPIRAL_FINAL_YAW_RATE = np.deg2rad(24.0)
+    SPIRAL_RATE_DECAY_TIME = 8.0
+
+    MAX_YAW_LEAD_START = np.deg2rad(18.0)
+    MAX_YAW_LEAD_END = np.deg2rad(48.0)
 
     VERTICAL_AMPLITUDE = 0.36
     VERTICAL_OMEGA = 0.75

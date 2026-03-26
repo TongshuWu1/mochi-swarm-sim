@@ -2,206 +2,196 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
+import random
 from typing import Iterable
 
+import cv2
 import numpy as np
+
+from ..preferences import TURBULENCE as TURB
 
 
 @dataclass
-class LocalWindSample:
-    force_world: np.ndarray
-    yaw_torque: float
-    base_force_world: np.ndarray
-    base_heading_deg: float
-    base_magnitude: float
-    actual_heading_deg: float
-    actual_magnitude: float
+class LocalWind:
+    force_xyz: np.ndarray
+    torque_xyz: np.ndarray
+    base_force_xy: np.ndarray
+    angle_deg: float
+    base_angle_deg: float
     scale: float
-    angle_offset_deg: float
+    scale_target: float
+    angle_target_deg: float
 
 
-class StaticFieldTurbulence:
-    """Spatial wind field with slow global random drift in angle/magnitude.
+class TurbulenceField:
+    def __init__(self):
+        self.enabled = bool(TURB.ENABLED_DEFAULT)
+        self.show_hud = bool(TURB.SHOW_HUD_DEFAULT)
+        self.show_field_window = bool(TURB.SHOW_FIELD_WINDOW_DEFAULT)
+        self.window_name = TURB.FIELD_WINDOW_NAME
+        self.window_size = int(TURB.FIELD_WINDOW_SIZE)
 
-    Each point has a fixed base direction/magnitude from the spatial field. Over time, the
-    whole field gets a slowly drifting magnitude scale and angle offset. This keeps the map
-    visually stable while still feeling a bit more alive and realistic.
-    """
+        self.scale = 1.0
+        self.scale_target = 1.0
+        self.angle_offset_rad = 0.0
+        self.angle_target_rad = 0.0
+        self._next_resample_time = 0.0
+        self._rng = random.Random(7)
+        self._window_initialized = False
 
-    def __init__(self, prefs):
-        self.p = prefs
-        self.enabled = bool(self.p.ENABLED_BY_DEFAULT)
-        self.hud_visible = True
-        self.graph_visible = True
+        self._sample_new_targets(0.0, force_now=True)
 
-        self._rng = np.random.default_rng(self.p.SEED)
-        self._scale = 1.0
-        self._scale_target = 1.0
-        self._angle_offset = 0.0
-        self._angle_target = 0.0
-        self._next_target_time = 0.0
-        self._last_update_time: float | None = None
+    def reset(self, sim_time: float):
+        self.scale = 1.0
+        self.scale_target = 1.0
+        self.angle_offset_rad = 0.0
+        self.angle_target_rad = 0.0
+        self._next_resample_time = sim_time
+        self._sample_new_targets(sim_time, force_now=True)
 
-        self._x_min = self.p.FIELD_X_MIN
-        self._x_max = self.p.FIELD_X_MAX
-        self._y_min = self.p.FIELD_Y_MIN
-        self._y_max = self.p.FIELD_Y_MAX
-
-    def reset(self, sim_time: float = 0.0) -> None:
-        self._scale = 1.0
-        self._scale_target = 1.0
-        self._angle_offset = 0.0
-        self._angle_target = 0.0
-        self._next_target_time = sim_time
-        self._last_update_time = sim_time
-
-    def toggle_enabled(self) -> None:
+    def toggle_enabled(self):
         self.enabled = not self.enabled
 
-    def toggle_hud(self) -> None:
-        self.hud_visible = not self.hud_visible
+    def toggle_hud(self):
+        self.show_hud = not self.show_hud
 
-    def toggle_graph(self) -> None:
-        self.graph_visible = not self.graph_visible
+    def toggle_field_window(self):
+        self.show_field_window = not self.show_field_window
+        if not self.show_field_window and self._window_initialized:
+            cv2.destroyWindow(self.window_name)
+            self._window_initialized = False
 
-    def update(self, sim_time: float) -> None:
-        if self._last_update_time is None:
-            self.reset(sim_time)
-        dt = max(0.0, sim_time - float(self._last_update_time))
-        self._last_update_time = sim_time
-
-        if sim_time >= self._next_target_time:
-            self._scale_target = float(
-                self._rng.uniform(self.p.SCALE_MIN, self.p.SCALE_MAX)
-            )
-            self._angle_target = math.radians(
-                float(self._rng.uniform(-self.p.MAX_ANGLE_OFFSET_DEG, self.p.MAX_ANGLE_OFFSET_DEG))
-            )
-            self._next_target_time = sim_time + float(
-                self._rng.uniform(self.p.TARGET_HOLD_TIME_MIN, self.p.TARGET_HOLD_TIME_MAX)
-            )
-
-        alpha = 1.0 - math.exp(-dt / max(self.p.SMOOTHING_TIME_CONSTANT, 1e-6))
-        self._scale += alpha * (self._scale_target - self._scale)
-        self._angle_offset += alpha * (self._angle_target - self._angle_offset)
-
-    def sample(self, position_world: Iterable[float]) -> LocalWindSample:
-        pos = np.asarray(list(position_world), dtype=float)
-        base_force = self._base_force_world(pos[0], pos[1], pos[2] if pos.size > 2 else 0.0)
-        base_mag_xy = float(np.linalg.norm(base_force[:2]))
-        base_heading = math.degrees(math.atan2(base_force[1], base_force[0])) if base_mag_xy > 1e-9 else 0.0
-
-        actual_force = base_force.copy()
-        rotated_xy = self._rotate_xy(actual_force[:2], self._angle_offset)
-        actual_force[:2] = rotated_xy * self._scale
-        actual_force[2] *= self._scale
-
-        actual_mag_xy = float(np.linalg.norm(actual_force[:2]))
-        actual_heading = math.degrees(math.atan2(actual_force[1], actual_force[0])) if actual_mag_xy > 1e-9 else 0.0
-        yaw_torque = float(np.clip(self.p.YAW_TORQUE_GAIN * actual_force[1], -self.p.YAW_TORQUE_MAX, self.p.YAW_TORQUE_MAX))
-
-        return LocalWindSample(
-            force_world=actual_force,
-            yaw_torque=yaw_torque,
-            base_force_world=base_force,
-            base_heading_deg=base_heading,
-            base_magnitude=base_mag_xy,
-            actual_heading_deg=actual_heading,
-            actual_magnitude=actual_mag_xy,
-            scale=float(self._scale),
-            angle_offset_deg=math.degrees(self._angle_offset),
+    def _sample_new_targets(self, sim_time: float, force_now: bool = False):
+        self.scale_target = self._rng.uniform(TURB.SCALE_MIN, TURB.SCALE_MAX)
+        self.angle_target_rad = math.radians(
+            self._rng.uniform(TURB.ANGLE_MIN_DEG, TURB.ANGLE_MAX_DEG)
         )
+        dt = self._rng.uniform(TURB.TARGET_RESAMPLE_MIN_S, TURB.TARGET_RESAMPLE_MAX_S)
+        self._next_resample_time = sim_time + dt
+        if force_now:
+            self.scale = self.scale_target
+            self.angle_offset_rad = self.angle_target_rad
 
-    def build_field_image(
-        self,
-        width: int,
-        height: int,
-        blimp_pos: np.ndarray | None = None,
-        balloon_points_xy: list[tuple[float, float]] | None = None,
-    ) -> np.ndarray:
-        img = np.full((height, width, 3), 20, dtype=np.uint8)
-        grid_cols = self.p.FIELD_GRID_COLS
-        grid_rows = self.p.FIELD_GRID_ROWS
-
-        for r in range(grid_rows):
-            for c in range(grid_cols):
-                x = self._x_min + (c + 0.5) * (self._x_max - self._x_min) / grid_cols
-                y = self._y_min + (r + 0.5) * (self._y_max - self._y_min) / grid_rows
-                sample = self.sample((x, y, 0.0))
-                px, py = self._world_to_canvas(x, y, width, height)
-                self._draw_arrow(img, (px, py), sample.base_force_world[:2], self.p.FIELD_ARROW_SCALE, (90, 160, 255))
-
-        # border
-        cv = __import__('cv2')
-        cv.rectangle(img, (8, 8), (width - 9, height - 9), (80, 80, 80), 1)
-        cv.putText(img, 'Base field (orange) + blimp local actual wind (green)', (14, 24), cv.FONT_HERSHEY_SIMPLEX, 0.5, (230, 230, 230), 1, cv.LINE_AA)
-
-        if balloon_points_xy:
-            for bx, by in balloon_points_xy:
-                px, py = self._world_to_canvas(bx, by, width, height)
-                cv.circle(img, (px, py), 3, (0, 165, 255), -1)
-
-        if blimp_pos is not None:
-            px, py = self._world_to_canvas(float(blimp_pos[0]), float(blimp_pos[1]), width, height)
-            sample = self.sample(blimp_pos)
-            cv.circle(img, (px, py), 5, (0, 255, 0), -1)
-            self._draw_arrow(img, (px, py), sample.force_world[:2], self.p.FIELD_ARROW_SCALE * 1.35, (0, 255, 0))
-            cv.putText(img, f"local |Fxy|={sample.actual_magnitude:.3f}", (14, height - 18), cv.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 1, cv.LINE_AA)
-
-        return img
-
-    def _base_force_world(self, x: float, y: float, z: float) -> np.ndarray:
-        xr = self._normalize(x, self._x_min, self._x_max)
-        yr = self._normalize(y, self._y_min, self._y_max)
-
-        theta = (
-            self.p.BASE_HEADING_DEG
-            + self.p.X_HEADING_VARIATION_DEG * math.sin(2.0 * math.pi * xr)
-            + self.p.Y_HEADING_VARIATION_DEG * math.cos(2.0 * math.pi * yr)
-        )
-        theta_rad = math.radians(theta)
-
-        mag01 = (
-            0.50
-            + 0.26 * math.sin(2.0 * math.pi * xr + 0.45)
-            + 0.18 * math.cos(2.0 * math.pi * yr - 0.35)
-            + 0.10 * math.sin(2.0 * math.pi * (xr + 0.7 * yr))
-        )
-        mag01 = float(np.clip(mag01, 0.0, 1.0))
-        mag_xy = self.p.HORIZONTAL_MAG_MIN + mag01 * (self.p.HORIZONTAL_MAG_MAX - self.p.HORIZONTAL_MAG_MIN)
-
-        fz = self.p.VERTICAL_MAG_MAX * (0.35 * math.sin(2.0 * math.pi * xr - 0.2) - 0.25 * math.cos(2.0 * math.pi * yr + 0.5))
-        fz = float(np.clip(fz, -self.p.VERTICAL_MAG_MAX, self.p.VERTICAL_MAG_MAX))
-
-        return np.array([
-            mag_xy * math.cos(theta_rad),
-            mag_xy * math.sin(theta_rad),
-            fz,
-        ], dtype=float)
+    def update(self, sim_time: float, dt: float):
+        if sim_time >= self._next_resample_time:
+            self._sample_new_targets(sim_time)
+        tau = max(float(TURB.DRIFT_TIME_CONSTANT_S), 1e-6)
+        alpha = 1.0 - math.exp(-max(dt, 0.0) / tau)
+        self.scale += alpha * (self.scale_target - self.scale)
+        self.angle_offset_rad += alpha * (self.angle_target_rad - self.angle_offset_rad)
 
     @staticmethod
-    def _rotate_xy(v: np.ndarray, angle_rad: float) -> np.ndarray:
-        c = math.cos(angle_rad)
-        s = math.sin(angle_rad)
-        return np.array([c * v[0] - s * v[1], s * v[0] + c * v[1]], dtype=float)
+    def _lerp(a: float, b: float, t: float) -> float:
+        return a + (b - a) * t
 
-    @staticmethod
-    def _normalize(v: float, lo: float, hi: float) -> float:
-        if hi <= lo:
-            return 0.5
-        return (v - lo) / (hi - lo)
+    def _normalized_coords(self, x: float, y: float) -> tuple[float, float]:
+        nx = 2.0 * (x - TURB.FIELD_X_MIN) / max(TURB.FIELD_X_MAX - TURB.FIELD_X_MIN, 1e-6) - 1.0
+        ny = 2.0 * (y - TURB.FIELD_Y_MIN) / max(TURB.FIELD_Y_MAX - TURB.FIELD_Y_MIN, 1e-6) - 1.0
+        return float(np.clip(nx, -1.5, 1.5)), float(np.clip(ny, -1.5, 1.5))
 
-    def _world_to_canvas(self, x: float, y: float, width: int, height: int) -> tuple[int, int]:
-        px = int(round(12 + (x - self._x_min) / max(self._x_max - self._x_min, 1e-9) * (width - 24)))
-        py = int(round(height - 12 - (y - self._y_min) / max(self._y_max - self._y_min, 1e-9) * (height - 24)))
-        return px, py
+    def base_field_at(self, x: float, y: float) -> tuple[np.ndarray, float, float, float]:
+        nx, ny = self._normalized_coords(x, y)
 
-    @staticmethod
-    def _draw_arrow(img: np.ndarray, start: tuple[int, int], vec_xy: np.ndarray, scale: float, color: tuple[int, int, int]) -> None:
-        cv = __import__('cv2')
-        vx, vy = float(vec_xy[0]), float(vec_xy[1])
-        mag = math.hypot(vx, vy)
-        if mag < 1e-8:
+        # Smooth spatial pattern with swirl + waves.
+        vx = 0.75 * math.cos(1.35 * ny + 0.35 * math.sin(1.1 * nx)) + 0.45 * ny
+        vy = 0.85 * math.sin(1.25 * nx - 0.30 * math.cos(1.0 * ny)) - 0.35 * nx
+        v = np.array([vx, vy], dtype=float)
+        norm = float(np.linalg.norm(v))
+        if norm < 1e-9:
+            v = np.array([1.0, 0.0], dtype=float)
+            norm = 1.0
+        direction = v / norm
+
+        pattern = 0.5 * (math.sin(1.7 * nx) * math.cos(1.25 * ny) + 1.0)
+        mag = self._lerp(TURB.XY_FORCE_MIN, TURB.XY_FORCE_MAX, pattern)
+        zpattern = math.sin(1.1 * nx + 0.7 * ny)
+        fz = self._lerp(TURB.Z_FORCE_MIN, TURB.Z_FORCE_MAX, 0.5 * (zpattern + 1.0))
+        yz = math.cos(1.35 * nx - 0.8 * ny)
+        tz = self._lerp(TURB.YAW_TORQUE_MIN, TURB.YAW_TORQUE_MAX, 0.5 * (yz + 1.0))
+        return direction * mag, mag, fz, tz
+
+    def local_wind(self, pos_xyz: Iterable[float]) -> LocalWind:
+        x, y, _z = [float(v) for v in pos_xyz]
+        base_xy, _mag, fz, tz = self.base_field_at(x, y)
+        c = math.cos(self.angle_offset_rad)
+        s = math.sin(self.angle_offset_rad)
+        rot = np.array([[c, -s], [s, c]], dtype=float)
+        actual_xy = self.scale * (rot @ base_xy)
+        force_xyz = np.array([actual_xy[0], actual_xy[1], self.scale * fz], dtype=float)
+        torque_xyz = np.array([0.0, 0.0, self.scale * tz], dtype=float)
+        ang = math.degrees(math.atan2(actual_xy[1], actual_xy[0]))
+        base_ang = math.degrees(math.atan2(base_xy[1], base_xy[0]))
+        return LocalWind(
+            force_xyz=force_xyz,
+            torque_xyz=torque_xyz,
+            base_force_xy=base_xy,
+            angle_deg=ang,
+            base_angle_deg=base_ang,
+            scale=float(self.scale),
+            scale_target=float(self.scale_target),
+            angle_target_deg=math.degrees(self.angle_target_rad),
+        )
+
+    def apply_to_data(self, data, body_id: int):
+        data.xfrc_applied[body_id, :] = 0.0
+        if not self.enabled:
+            return self.local_wind(data.xpos[body_id])
+        local = self.local_wind(data.xpos[body_id])
+        data.xfrc_applied[body_id, 0:3] = local.force_xyz
+        data.xfrc_applied[body_id, 3:6] = local.torque_xyz
+        return local
+
+    def _ensure_window(self):
+        if self._window_initialized:
             return
-        end = (int(round(start[0] + vx / mag * mag * scale)), int(round(start[1] - vy / mag * mag * scale)))
-        cv.arrowedLine(img, start, end, color, 1, cv.LINE_AA, tipLength=0.25)
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(self.window_name, self.window_size, self.window_size)
+        self._window_initialized = True
+
+    def render_field_window(self, blimp_pos_xyz: Iterable[float]):
+        if not self.show_field_window:
+            if self._window_initialized:
+                cv2.destroyWindow(self.window_name)
+                self._window_initialized = False
+            return
+        self._ensure_window()
+
+        size = self.window_size
+        canvas = np.full((size, size, 3), 245, dtype=np.uint8)
+        # Grid arrows of base field
+        xs = np.linspace(TURB.FIELD_X_MIN, TURB.FIELD_X_MAX, TURB.FIELD_GRID_NX)
+        ys = np.linspace(TURB.FIELD_Y_MIN, TURB.FIELD_Y_MAX, TURB.FIELD_GRID_NY)
+        for x in xs:
+            for y in ys:
+                base_xy, _, _, _ = self.base_field_at(float(x), float(y))
+                self._draw_arrow(canvas, x, y, base_xy, (80, 140, 240), scale=180.0)
+
+        # Robot current actual local wind
+        px, py, _ = [float(v) for v in blimp_pos_xyz]
+        local = self.local_wind((px, py, 0.0))
+        self._draw_arrow(canvas, px, py, local.force_xyz[:2], (20, 170, 20), scale=260.0, thickness=3)
+        u, v = self._world_to_image(px, py, size)
+        cv2.circle(canvas, (u, v), 7, (20, 170, 20), -1)
+
+        # border and legends
+        cv2.rectangle(canvas, (8, 8), (size - 8, size - 8), (60, 60, 60), 1)
+        cv2.putText(canvas, 'Base field: orange', (18, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (80, 140, 240), 2, cv2.LINE_AA)
+        cv2.putText(canvas, 'Robot/local wind: green', (18, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (20, 170, 20), 2, cv2.LINE_AA)
+        cv2.putText(canvas, f'Scale {self.scale:.2f}->{self.scale_target:.2f}', (18, size - 34), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (40,40,40), 1, cv2.LINE_AA)
+        cv2.putText(canvas, f'Angle {math.degrees(self.angle_offset_rad):+.1f} deg -> {math.degrees(self.angle_target_rad):+.1f} deg', (18, size - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (40,40,40), 1, cv2.LINE_AA)
+        cv2.imshow(self.window_name, canvas)
+
+    def _world_to_image(self, x: float, y: float, size: int) -> tuple[int, int]:
+        tx = (x - TURB.FIELD_X_MIN) / max(TURB.FIELD_X_MAX - TURB.FIELD_X_MIN, 1e-6)
+        ty = (y - TURB.FIELD_Y_MIN) / max(TURB.FIELD_Y_MAX - TURB.FIELD_Y_MIN, 1e-6)
+        u = int(np.clip(tx, 0.0, 1.0) * (size - 1))
+        v = int((1.0 - np.clip(ty, 0.0, 1.0)) * (size - 1))
+        return u, v
+
+    def _draw_arrow(self, canvas: np.ndarray, x: float, y: float, vec_xy: np.ndarray, color: tuple[int, int, int], scale: float, thickness: int = 2):
+        size = canvas.shape[0]
+        u, v = self._world_to_image(x, y, size)
+        dx = int(round(float(vec_xy[0]) * scale))
+        dy = int(round(float(vec_xy[1]) * scale))
+        end = (u + dx, v - dy)
+        cv2.arrowedLine(canvas, (u, v), end, color, thickness, cv2.LINE_AA, tipLength=0.25)

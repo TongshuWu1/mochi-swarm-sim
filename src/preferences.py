@@ -58,39 +58,39 @@ class CAMERA:
     FOLLOW_BODY_NAME = "assembly"
 
 
-
 class TURBULENCE:
-    ENABLED_BY_DEFAULT = False
-    SEED = 7
+    ENABLED_DEFAULT = True
+    SHOW_HUD_DEFAULT = True
+    SHOW_FIELD_WINDOW_DEFAULT = True
+    FIELD_WINDOW_NAME = "Turbulence Field"
+    FIELD_WINDOW_SIZE = 720
 
-    FIELD_X_MIN = -40.0
-    FIELD_X_MAX = 65.0
-    FIELD_Y_MIN = -12.0
-    FIELD_Y_MAX = 12.0
+    BLIMP_BODY_NAME = "assembly"
 
-    HORIZONTAL_MAG_MIN = 0.012
-    HORIZONTAL_MAG_MAX = 0.045
-    VERTICAL_MAG_MAX = 0.005
-    YAW_TORQUE_GAIN = 0.055
-    YAW_TORQUE_MAX = 0.0035
+    # Base field strength (before scale drift)
+    XY_FORCE_MIN = 0.010
+    XY_FORCE_MAX = 0.10
+    Z_FORCE_MIN = -0.01
+    Z_FORCE_MAX = 0.01
+    YAW_TORQUE_MIN = -0.0025
+    YAW_TORQUE_MAX = 0.0025
 
-    BASE_HEADING_DEG = 6.0
-    X_HEADING_VARIATION_DEG = 24.0
-    Y_HEADING_VARIATION_DEG = 18.0
-
+    # Global slow random drift ranges
     SCALE_MIN = 0.85
-    SCALE_MAX = 1.20
-    MAX_ANGLE_OFFSET_DEG = 14.0
-    TARGET_HOLD_TIME_MIN = 2.0
-    TARGET_HOLD_TIME_MAX = 5.0
-    SMOOTHING_TIME_CONSTANT = 2.8
+    SCALE_MAX = 1.45
+    ANGLE_MIN_DEG = -40.0
+    ANGLE_MAX_DEG = 40.0
+    TARGET_RESAMPLE_MIN_S = 2.0
+    TARGET_RESAMPLE_MAX_S = 5.0
+    DRIFT_TIME_CONSTANT_S = 1.8
 
-    FIELD_GRID_COLS = 13
-    FIELD_GRID_ROWS = 7
-    FIELD_ARROW_SCALE = 560.0
-    WINDOW_NAME = "Turbulence Field"
-    WINDOW_WIDTH = 900
-    WINDOW_HEIGHT = 420
+    # Spatial map bounds for visualization and field normalization
+    FIELD_X_MIN = -14.0
+    FIELD_X_MAX = 14.0
+    FIELD_Y_MIN = -18.0
+    FIELD_Y_MAX = 18.0
+    FIELD_GRID_NX = 17
+    FIELD_GRID_NY = 21
 
 
 __all__ = ["CONTROL", "CONTROL_LIMITS", "CAMERA", "TURBULENCE"]

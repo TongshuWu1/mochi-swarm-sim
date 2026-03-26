@@ -40,10 +40,6 @@ class SpiralSearchController:
     def _lerp(a: float, b: float, t: float) -> float:
         return float(a + (b - a) * np.clip(t, 0.0, 1.0))
 
-    def _spiral_expand_progress(self, traveled_along_dir: float) -> float:
-        turns_completed = max(0.0, traveled_along_dir) / (2.0 * np.pi)
-        return float(np.clip(turns_completed / max(AUTO_SEARCH.SPIRAL_EXPAND_TURNS, 1e-6), 0.0, 1.0))
-
     @staticmethod
     def wrap(angle: float) -> float:
         return float(np.atan2(np.sin(angle), np.cos(angle)))
@@ -102,20 +98,26 @@ class SpiralSearchController:
     def _safe_dt(dt_estimate: float) -> float:
         return float(np.clip(dt_estimate, 1e-3, 0.05))
 
+    @staticmethod
+    def _search_progress(search_age: float) -> float:
+        linear = np.clip(search_age / max(AUTO_SEARCH.SPIRAL_RATE_DECAY_TIME, 1e-6), 0.0, 1.0)
+        # Ease-out: keep the turn rate high initially, then taper it down smoothly.
+        return float(1.0 - (1.0 - linear) ** 2)
+
     def _advance_command_yaw(
         self,
+        sim_time: float,
         current_yaw_unwrapped: float,
         dt_estimate: float,
-    ) -> tuple[float, float, float]:
-        traveled_along_dir = self.direction * (self._command_yaw_unwrapped - self._yaw_start_unwrapped)
-        expand_progress = self._spiral_expand_progress(traveled_along_dir)
+    ) -> tuple[float, float, float, float, float]:
+        search_age = max(0.0, sim_time - self.started_time)
+        expand_progress = self._search_progress(search_age)
 
-        yaw_mult = self._lerp(
-            AUTO_SEARCH.SPIRAL_START_YAW_MULT,
-            AUTO_SEARCH.SPIRAL_END_YAW_MULT,
+        yaw_rate = self._lerp(
+            AUTO_SEARCH.SPIRAL_INITIAL_YAW_RATE,
+            AUTO_SEARCH.SPIRAL_FINAL_YAW_RATE,
             expand_progress,
         )
-        yaw_rate = AUTO_SEARCH.SPIRAL_YAW_RATE * yaw_mult
         dt = self._safe_dt(dt_estimate)
         step = yaw_rate * dt
 
@@ -131,12 +133,12 @@ class SpiralSearchController:
             proposed_command = current_yaw_unwrapped + self.direction * max_lead
             step = max(0.0, self.direction * (proposed_command - self._command_yaw_unwrapped))
         elif lead < 0.0:
-            # Never command a heading that falls behind the chosen spiral direction.
+            # Never command a heading that falls behind the chosen search direction.
             proposed_command = current_yaw_unwrapped
             step = max(0.0, self.direction * (proposed_command - self._command_yaw_unwrapped))
 
         self._command_yaw_unwrapped = proposed_command
-        return self._command_yaw_unwrapped, step, expand_progress
+        return self._command_yaw_unwrapped, step, expand_progress, yaw_rate, search_age
 
     def begin(
         self,
@@ -158,20 +160,21 @@ class SpiralSearchController:
             last_seen_dx=last_seen_dx,
             last_seen_dy=last_seen_dy,
         )
-        command_yaw_unwrapped, step, growth = self._advance_command_yaw(
+        command_yaw_unwrapped, step, growth, yaw_rate, _ = self._advance_command_yaw(
+            sim_time=sim_time,
             current_yaw_unwrapped=current_yaw_unwrapped,
             dt_estimate=dt_estimate,
         )
         initial_target_yaw = self.wrap(command_yaw_unwrapped)
-        initial_thrust = self._lerp(AUTO_SEARCH.SPIRAL_START_THRUST, AUTO_SEARCH.SPIRAL_END_THRUST, growth)
+        initial_thrust = AUTO_SEARCH.SPIRAL_THRUST
         return SpiralSearchCommand(
             target_yaw=initial_target_yaw,
             target_height=self.target_height,
             target_thrust=initial_thrust,
             debug_status=(
                 f"search:spiral {self._label_text(None)} | "
-                f"step={np.rad2deg(step):.1f}deg | thrust={initial_thrust:.3f} | "
-                f"grow={growth:.2f} | z={self.target_height:.2f} | "
+                f"rate={np.rad2deg(yaw_rate):.1f}dps | step={np.rad2deg(step):.1f}deg | "
+                f"thrust={initial_thrust:.3f} | grow={growth:.2f} | z={self.target_height:.2f} | "
                 f"dir={'CCW' if self.direction > 0 else 'CW'}"
             ),
         )
@@ -192,24 +195,20 @@ class SpiralSearchController:
     ) -> SpiralSearchCommand:
         del current_yaw_wrapped
 
-        command_yaw_unwrapped, step, expand_progress = self._advance_command_yaw(
+        command_yaw_unwrapped, step, expand_progress, yaw_rate, search_age = self._advance_command_yaw(
+            sim_time=sim_time,
             current_yaw_unwrapped=current_yaw_unwrapped,
             dt_estimate=dt_estimate,
         )
         target_yaw = self.wrap(command_yaw_unwrapped)
 
-        search_age = sim_time - self.started_time
         z_offset = AUTO_SEARCH.VERTICAL_AMPLITUDE * np.sin(AUTO_SEARCH.VERTICAL_OMEGA * search_age)
         target_height = float(np.clip(
             self.target_height + z_offset + AUTO_SEARCH.RECENTER_GAIN * (nominal_height - current_height),
             AUTO.MIN_HEIGHT,
             AUTO.MAX_HEIGHT,
         ))
-        target_thrust = self._lerp(
-            AUTO_SEARCH.SPIRAL_START_THRUST,
-            AUTO_SEARCH.SPIRAL_END_THRUST,
-            expand_progress,
-        )
+        target_thrust = AUTO_SEARCH.SPIRAL_THRUST
 
         lead_deg = np.rad2deg(self.direction * (command_yaw_unwrapped - current_yaw_unwrapped))
         return SpiralSearchCommand(
@@ -218,8 +217,8 @@ class SpiralSearchController:
             target_thrust=target_thrust,
             debug_status=(
                 f"search:spiral {self._label_text(label)} | lead={lead_deg:.1f}deg | "
-                f"step={np.rad2deg(step):.1f}deg | thrust={target_thrust:.3f} | "
-                f"grow={expand_progress:.2f} | z={target_height:.2f} | "
+                f"rate={np.rad2deg(yaw_rate):.1f}dps | step={np.rad2deg(step):.1f}deg | "
+                f"thrust={target_thrust:.3f} | grow={expand_progress:.2f} | z={target_height:.2f} | "
                 f"dir={'CCW' if self.direction > 0 else 'CW'}"
             ),
         )

@@ -53,6 +53,30 @@ class Controller:
         self.latest_camera_processing_mode = None
         self.latest_tracking_result = TrackingResult()
 
+    def _make_fresh_state_like_current(self):
+        current_state = self.state_machine.current_state
+        if isinstance(current_state, AutoGateSequenceState):
+            return AutoGateSequenceState()
+        return ManualState()
+
+    def reset(self, preserve_mode: bool = True):
+        self.action_states = {action: False for action in Action}
+        self.senses = np.zeros(State.NUM_STATES)
+        self.robot = Differential()
+
+        self.latest_camera_raw_rgb = None
+        self.latest_camera_processed = None
+        self.latest_camera_display_bgr = None
+        self.latest_camera_time = -1.0
+        self.latest_camera_seq = -1
+        self._last_consumed_camera_seq = -1
+        self.latest_camera_resolution_name = None
+        self.latest_camera_processing_mode = None
+        self.latest_tracking_result = TrackingResult()
+
+        next_state = self._make_fresh_state_like_current() if preserve_mode else ManualState()
+        self.state_machine = RobotStateMachine(next_state)
+
     def update_key_state(self, key, action):
         is_pressed = action != glfw.RELEASE
 
